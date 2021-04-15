@@ -2,6 +2,7 @@
  * @brief Data Structure to implement DRAM storage part of LSM Tree
  *        Implemented by SkipList<K, V>
  *        typeof K = unit64_t; typeof V = std::string
+ *        Uncommon SkipList: has size limit
  * @author JolyneFr 519021910390
  */
 
@@ -9,10 +10,12 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
+#include <utility>
 
 const uint64_t MAX_BYTE_SIZE = 1 << 21;
 
-class MemTable {
+class SkipList {
 
 private:
 
@@ -39,9 +42,9 @@ public:
     /**
      * Constructor & destructor for MemTable
      */
-    MemTable();
+    SkipList();
 
-    ~MemTable();
+    ~SkipList();
 
     /**
      * Try to read value marked by key
@@ -67,6 +70,12 @@ public:
      * @return if the key exists
      */
     bool remove(uint64_t key);
+
+    /**
+     * get datas in SkipList in the order of key value undecreased.
+     * @return std vector that store all datas.
+     */
+    std::vector<std::pair<uint64_t, std::string>> exported_data();
 
     /**
      * Memory size after this MemTable being generated to .sst file

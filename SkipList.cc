@@ -1,33 +1,40 @@
-#include "MemTable.h"
+#include "SkipList.h"
 #include <vector>
 #include <random>
 #include <iostream>
 
-MemTable::ListNode::ListNode(): 
+SkipList::ListNode::ListNode(): 
     prev(nullptr), next(nullptr), below(nullptr) {}
 
-MemTable::ListNode::ListNode(const uint64_t &k, const std::string &v):
+SkipList::ListNode::ListNode(const uint64_t &k, const std::string &v):
     key(k), value(v), prev(nullptr), next(nullptr), below(nullptr) {}
 
-MemTable::ListNode::~ListNode() {
-    if (!prev && below) delete below; 
-    if (next) delete next;
-    value.~basic_string();
+SkipList::ListNode::~ListNode() {
+    // just do nothing
 }
 
-MemTable::MemTable() {
+SkipList::SkipList() {
     head = new ListNode();
 }
 
-MemTable::~MemTable() {
-    delete head;
+SkipList::~SkipList() {
+    ListNode *del_head = head;
+    while (del_head) {
+        ListNode *cur_node = del_head;
+        del_head = del_head->below;
+        while (cur_node) {
+            ListNode *del_node = cur_node;
+            cur_node = cur_node->next;
+            delete del_node;
+        }
+    }
 }
 
-uint64_t MemTable::cal_size(uint64_t count, uint64_t length) {
+uint64_t SkipList::cal_size(uint64_t count, uint64_t length) {
     return 10272 + 12 * count + length;
 }
 
-MemTable::ListNode *MemTable::ListNode::insertAfterAbove(ListNode *p, ListNode *b) {
+SkipList::ListNode *SkipList::ListNode::insertAfterAbove(ListNode *p, ListNode *b) {
     // above node doesn't exists
     ListNode *n = nullptr;
     if (p) {
@@ -40,7 +47,7 @@ MemTable::ListNode *MemTable::ListNode::insertAfterAbove(ListNode *p, ListNode *
     this->below = b;
 }
 
-MemTable::ListNode *MemTable::find(uint64_t key) {
+SkipList::ListNode *SkipList::find(uint64_t key) {
     ListNode *target = head;
     while (target) {
         while (target->next && target->next->key < key) {
@@ -54,7 +61,7 @@ MemTable::ListNode *MemTable::find(uint64_t key) {
     return nullptr;
 }
 
-std::string MemTable::get(uint64_t key) {
+std::string SkipList::get(uint64_t key) {
     ListNode *find_node = find(key);
     if (find_node) {
         return find_node->value;
@@ -63,7 +70,7 @@ std::string MemTable::get(uint64_t key) {
     }
 }
 
-bool MemTable::put(uint64_t key, std::string value) {
+bool SkipList::put(uint64_t key, std::string value) {
     std::vector<ListNode*> path_list;
     ListNode *hot = head;
     while (hot) {
@@ -116,32 +123,46 @@ bool MemTable::put(uint64_t key, std::string value) {
     return true;
 }
 
-bool MemTable::remove(uint64_t key) {
+bool SkipList::remove(uint64_t key) {
     ListNode *top_target = find(key);
     if (!top_target) return false;
     uint64_t str_length = top_target->value.size();
     while (top_target) {
         ListNode *next = top_target->next;
         ListNode *prev = top_target->prev;
+        ListNode *del_node = top_target;
+        top_target = top_target->below;
         if (next) next->prev = prev;
         if (prev) prev->next = next;
-        top_target = top_target->below;
+        delete del_node;
     }
     data_count--;
     data_total_length -= str_length;
     return true;
 }
 
-uint64_t MemTable::mem_size() {
+std::vector<std::pair<uint64_t, std::string>> SkipList::exported_data() {
+    std::vector<std::pair<uint64_t, std::string>> data_set;
+    ListNode *cur_data = head;
+    while (cur_data->below) {
+        cur_data = cur_data->below; // find the lowest layer
+    }
+    cur_data = cur_data->next;
+    while (cur_data) {
+        data_set.push_back(std::make_pair(cur_data->key, cur_data->value));
+    }
+}
+
+uint64_t SkipList::mem_size() {
     return cal_size(data_count, data_total_length);
 }
 
-void MemTable::clear() {
-    delete head;
+void SkipList::clear() {
+    this->~SkipList();
     head = new ListNode();
 }
 
-void MemTable::show() {
+void SkipList::show() {
     ListNode *cur_layer = head;
     while (cur_layer) {
         ListNode *cur_data = cur_layer->next;
