@@ -2,13 +2,14 @@
 #include <string>
 #include <iostream>
 
-KVStore::KVStore(const std::string &dir): KVStoreAPI(dir)
+
+KVStore::KVStore(const std::string &dir): KVStoreAPI(dir), data_dir(dir)
 {
+    
 }
 
 KVStore::~KVStore()
-{
-}
+= default;
 
 /**
  * Insert/Update the key-value pair.
@@ -18,6 +19,7 @@ void KVStore::put(uint64_t key, const std::string &s)
 {
     memTable.put(key, s);
 }
+
 /**
  * Returns the (string) value of the given key.
  * An empty string indicates not found.

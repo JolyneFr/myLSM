@@ -3,18 +3,9 @@
 #include <random>
 #include <iostream>
 
-SkipList::ListNode::ListNode(): 
-    prev(nullptr), next(nullptr), below(nullptr) {}
-
-SkipList::ListNode::ListNode(const uint64_t &k, const std::string &v):
-    key(k), value(v), prev(nullptr), next(nullptr), below(nullptr) {}
-
-SkipList::ListNode::~ListNode() {
-    // just do nothing
-}
-
 SkipList::SkipList() {
     head = new ListNode();
+    lowest_head = head;
 }
 
 SkipList::~SkipList() {
@@ -30,24 +21,7 @@ SkipList::~SkipList() {
     }
 }
 
-uint64_t SkipList::cal_size(uint64_t count, uint64_t length) {
-    return 10272 + 12 * count + length;
-}
-
-SkipList::ListNode *SkipList::ListNode::insertAfterAbove(ListNode *p, ListNode *b) {
-    // above node doesn't exists
-    ListNode *n = nullptr;
-    if (p) {
-        n = p->next;
-        p->next = this; 
-    }
-    if (n) { n->prev = next; }
-    this->prev = p;
-    this->next = n;
-    this->below = b;
-}
-
-SkipList::ListNode *SkipList::find(uint64_t key) {
+ListNode *SkipList::find(uint64_t key) {
     ListNode *target = head;
     while (target) {
         while (target->next && target->next->key < key) {
@@ -124,6 +98,7 @@ bool SkipList::put(uint64_t key, std::string value) {
 }
 
 bool SkipList::remove(uint64_t key) {
+
     ListNode *top_target = find(key);
     if (!top_target) return false;
     uint64_t str_length = top_target->value.size();
@@ -139,27 +114,41 @@ bool SkipList::remove(uint64_t key) {
     data_count--;
     data_total_length -= str_length;
     return true;
+
 }
 
-std::vector<std::pair<uint64_t, std::string>> SkipList::exported_data() {
-    std::vector<std::pair<uint64_t, std::string>> data_set;
+std::vector<value_type> *SkipList::exported_data() {
+    std::vector<value_type> *data_set = new std::vector<value_type>();
     ListNode *cur_data = head;
     while (cur_data->below) {
         cur_data = cur_data->below; // find the lowest layer
     }
     cur_data = cur_data->next;
     while (cur_data) {
-        data_set.push_back(std::make_pair(cur_data->key, cur_data->value));
+        data_set->push_back(std::make_pair(cur_data->key, cur_data->value));
+        cur_data = cur_data->next;
     }
+    return data_set;
+}
+
+ListNode *SkipList::get_bottom_head() {
+    return lowest_head;
 }
 
 uint64_t SkipList::mem_size() {
     return cal_size(data_count, data_total_length);
 }
 
+uint64_t SkipList::get_kv_count() {
+    return data_count;
+}
+
 void SkipList::clear() {
     this->~SkipList();
     head = new ListNode();
+    lowest_head = head;
+    data_count = 0;
+    data_total_length = 0;
 }
 
 void SkipList::show() {
