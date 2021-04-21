@@ -1,4 +1,5 @@
 #include "global.h"
+#include "utils.h"
 
 uint64_t cal_size(uint64_t count, uint64_t length) {
     return 10272 + 12 * count + length;
@@ -35,4 +36,28 @@ bool operator<(MergeData a, MergeData b) {
         return a.time_stamp < b.time_stamp;
     // smaller key -> earlier popped
     return a.min_key > b.min_key;
+}
+
+bool operator<(TimeIndexPair a, TimeIndexPair b) {
+    return a.time_stamp > b.time_stamp;
+}
+
+bool operator<(KeyIndexPair a, KeyIndexPair b) {
+    return a.min_key > b.min_key;
+}
+
+char* substr(const char* str, unsigned start, unsigned end) {
+    unsigned n = end - start;
+    static char buf[256];
+    strncpy(buf, str + start, n);
+    buf[n] = 0;
+    return buf;
+}
+
+bool sst_suffix(const char* filePath) {
+    const char *ptr, c = '.';
+    ptr = strrchr(filePath, c);
+    long pos = ptr - filePath;
+    char *fileExt = substr(filePath, pos+1, strlen(filePath));
+    return !strcmp(fileExt,"sst");
 }

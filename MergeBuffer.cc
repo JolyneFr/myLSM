@@ -9,11 +9,11 @@ MergeBuffer::~MergeBuffer() {
     delete_all();
 }
 
-bool MergeBuffer::push_back(uint64_t key, std::string value) {
+bool MergeBuffer::push_back(uint64_t key, const std::string& value) {
     uint64_t pred_length = data_total_length + value.size();
     if (cal_size(data_count + 1, pred_length) > MAX_BYTE_SIZE)
         return false;
-    ListNode *new_node = new ListNode(key, value);
+    auto new_node = new ListNode(key, value);
     new_node->insertAfterAbove(rear, nullptr);
     rear = new_node;
 
@@ -30,7 +30,7 @@ ListNode *MergeBuffer::get_rear() {
     return rear;
 }
 
-uint64_t MergeBuffer::get_size() {
+uint64_t MergeBuffer::get_size() const {
     return data_count;
 }
 

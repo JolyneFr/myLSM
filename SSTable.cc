@@ -1,10 +1,10 @@
 #include <fstream>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 #include <queue>
 #include "SSTable.h"
 #include "MurmurHash3.h"
-#include "MergeBuffer.h"
+#include "utils.h"
 
 SSTable::Header::Header(): time_stamp(0), kv_count(0), min_key(0), max_key(0) {}
 
@@ -170,7 +170,7 @@ SSTable::SSTable(const std::string &file_path) {
 
     
     header_offset = cur_SSTable.tellg();
-    cur_SSTable.seekg(0, cur_SSTable.end);
+    cur_SSTable.seekg(0, std::ifstream::end);
     string_length = (size_t)cur_SSTable.tellg() - header_offset;
     /* no need to read all string from file
     cur_SSTable.seekg(front_length);
@@ -192,7 +192,6 @@ SSTable::SSTable(const std::string &file_path) {
 
 SSTable::~SSTable() {
     delete[] data_index;
-    //delete[] data_string;
 }
 
 void SSTable::writeHeaderToFile(std::ofstream &ssTable_in_file) {
@@ -218,7 +217,7 @@ void SSTable::writeHeaderToFile(std::ofstream &ssTable_in_file) {
 std::vector<std::pair<uint64_t, std::string>> SSTable::getData() {
     std::vector<std::pair<uint64_t, std::string>> data_set;
     for (size_t ind = 0; ind < table_header.kv_count; ++ind) {
-        data_set.push_back(std::make_pair(data_index[ind].key, data_string[ind]));
+        data_set.emplace_back(data_index[ind].key, data_string[ind]);
     }
     return data_set;
 }
@@ -250,7 +249,7 @@ scope_type SSTable::getScope() {
 }
 
 std::ifstream *SSTable::open_file() {
-    std::ifstream *target = new std::ifstream(file_path);
+    auto *target = new std::ifstream(file_path);
     target->seekg(header_offset);
     return target;
 }
@@ -269,25 +268,25 @@ std::string SSTable::read_by_index(std::ifstream &fs, uint64_t index) {
     return cur_data;
 }
 
-uint64_t SSTable::get_time_stamp() {
+uint64_t SSTable::get_time_stamp() const {
     return table_header.time_stamp;
 }
 
-std::vector<SSTable*> merge(std::vector<SSTable*> prepared_data, uint64_t &time_stamp, bool is_delete, const std::string &dir) {
+std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, uint64_t &time_stamp, bool is_delete, const std::string &dir) {
 
     std::priority_queue<MergeData> merge_heap;
     std::vector<SSTable*> merged_data;
     MergeBuffer buffer;
     
-    // initailize min keys
+    // initialize min keys
     uint64_t table_index = 0;
-    auto cur_table = prepared_data.begin();
-    while (cur_table != prepared_data.end()) {
-        uint64_t mk = (*cur_table)->data_index[0].key;
-        uint64_t ts = (*cur_table)->table_header.time_stamp;
-        std::ifstream *fs = (*cur_table)->open_file();
+    auto cur_table_itr = prepared_data.begin();
+    while (cur_table_itr != prepared_data.end()) {
+        uint64_t mk = (*cur_table_itr)->data_index[0].key;
+        uint64_t ts = (*cur_table_itr)->table_header.time_stamp;
+        std::ifstream *fs = (*cur_table_itr)->open_file();
         merge_heap.push(MergeData(mk, ts, 0, table_index++,fs));
-        cur_table++;
+        cur_table_itr++;
     }
 
     while (!merge_heap.empty()) {
@@ -304,7 +303,7 @@ std::vector<SSTable*> merge(std::vector<SSTable*> prepared_data, uint64_t &time_
                 // no need / not a delete flag, try to append data
                 if (!buffer.push_back(cur_data_key, cur_data_string)) {
                     // space not enough -> save to SSTable
-                    SSTable *new_table = new SSTable(buffer.get_head(), buffer.get_size(), time_stamp++, dir);
+                    auto *new_table = new SSTable(buffer.get_head(), buffer.get_size(), time_stamp++, dir);
                     merged_data.push_back(new_table);
                     buffer.clear();
                     // don't forget to push it again
@@ -336,16 +335,34 @@ std::vector<SSTable*> merge(std::vector<SSTable*> prepared_data, uint64_t &time_
         }
     }
 
-    // push remaining data to SSTable
+    // push remaining data to SSTable, and write them to Disk when constructing
     if (buffer.get_size() != 0) {
-        SSTable *new_table = new SSTable(buffer.get_head(), buffer.get_size(), time_stamp++, dir);
+        auto *new_table = new SSTable(buffer.get_head(), buffer.get_size(), time_stamp++, dir);
         merged_data.push_back(new_table);
     }
 
-    // destruct merged tables
-    for (auto merged_table : prepared_data) {
+    // destruct merged tables, delete old SSTables
+    for (SSTable *merged_table : prepared_data) {
         delete merged_table;
     }
 
     return merged_data;
+}
+
+bool operator<(const SSTable& a, const SSTable& b) {
+    return a.table_header.time_stamp > b.table_header.time_stamp;
+}
+
+std::string SSTable::get(uint64_t key) {
+    if (bloom_test(key)) {
+        size_t ind = binary_search(key);
+        if (ind != table_header.kv_count) {
+            return get_by_index(ind); // may be "~DELETED~"
+        }
+    }
+    return "";
+}
+
+void SSTable::delete_file() {
+    utils::rmfile(file_path.c_str());
 }

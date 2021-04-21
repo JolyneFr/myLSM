@@ -44,7 +44,7 @@ std::string SkipList::get(uint64_t key) {
     }
 }
 
-bool SkipList::put(uint64_t key, std::string value) {
+bool SkipList::put(uint64_t key, const std::string& value) {
     std::vector<ListNode*> path_list;
     ListNode *hot = head;
     while (hot) {
@@ -73,10 +73,10 @@ bool SkipList::put(uint64_t key, std::string value) {
     // handle insert
     bool isUp = true;
     ListNode *below_node = nullptr;
-    while (isUp && path_list.size() > 0) {
+    while (isUp && !path_list.empty()) {
         ListNode *prev_node = path_list.back();
         path_list.pop_back();
-        ListNode *new_node = new ListNode(key, value);
+        auto *new_node = new ListNode(key, value);
         new_node->insertAfterAbove(prev_node, below_node);
         below_node = new_node;
         isUp = (rand() & 1);
@@ -84,7 +84,7 @@ bool SkipList::put(uint64_t key, std::string value) {
     if (isUp) {
         ListNode *old_head = head;
         head = new ListNode();
-        ListNode *new_node = new ListNode(key, value);
+        auto *new_node = new ListNode(key, value);
         new_node->insertAfterAbove(head, below_node);
         head->below = old_head;
     }
@@ -118,7 +118,7 @@ bool SkipList::remove(uint64_t key) {
 }
 
 std::vector<value_type> *SkipList::exported_data() {
-    std::vector<value_type> *data_set = new std::vector<value_type>();
+    auto *data_set = new std::vector<value_type>();
     ListNode *cur_data = head;
     while (cur_data->below) {
         cur_data = cur_data->below; // find the lowest layer
@@ -135,11 +135,11 @@ ListNode *SkipList::get_bottom_head() {
     return lowest_head;
 }
 
-uint64_t SkipList::mem_size() {
+uint64_t SkipList::mem_size() const {
     return cal_size(data_count, data_total_length);
 }
 
-uint64_t SkipList::get_kv_count() {
+uint64_t SkipList::get_kv_count() const {
     return data_count;
 }
 

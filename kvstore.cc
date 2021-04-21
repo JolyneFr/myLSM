@@ -1,15 +1,11 @@
 #include "kvstore.h"
 #include <string>
-#include <iostream>
 
 
-KVStore::KVStore(const std::string &dir): KVStoreAPI(dir), data_dir(dir)
-{
-    
-}
+KVStore::KVStore(const std::string &dir):
+    KVStoreAPI(dir), store(DiskManager(dir)), data_dir(dir) {}
 
-KVStore::~KVStore()
-= default;
+KVStore::~KVStore() = default;
 
 /**
  * Insert/Update the key-value pair.
@@ -17,7 +13,15 @@ KVStore::~KVStore()
  */
 void KVStore::put(uint64_t key, const std::string &s)
 {
-    memTable.put(key, s);
+    if (!memTable.put(key, s)) {
+        uint64_t kv_count = memTable.get_kv_count();
+        uint64_t ts = store.get_time_stamp();
+        auto new_ssTable = new SSTable(memTable.get_bottom_head(), kv_count, ts, data_dir + "/level-0/");
+        store.push_ssTable(new_ssTable);
+
+        memTable.clear();
+        memTable.put(key, s);
+    }
 }
 
 /**
@@ -26,7 +30,12 @@ void KVStore::put(uint64_t key, const std::string &s)
  */
 std::string KVStore::get(uint64_t key)
 {
-	return memTable.get(key);
+	std::string mem_str = memTable.get(key);
+	if (!mem_str.empty()) {
+	    if (mem_str == "~DELETED~")
+	        return "";
+	    return mem_str;
+	} return store.get(key);
 }
 /**
  * Delete the given key-value pair if it exists.
@@ -34,7 +43,9 @@ std::string KVStore::get(uint64_t key)
  */
 bool KVStore::del(uint64_t key)
 {
-	return memTable.remove(key);
+    bool is_exist = !get(key).empty();
+	memTable.put(key, "~DELETED~");
+    return is_exist;
 }
 
 /**
@@ -44,4 +55,5 @@ bool KVStore::del(uint64_t key)
 void KVStore::reset()
 {
     memTable.clear();
+    store.clear();
 }

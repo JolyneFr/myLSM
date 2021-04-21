@@ -46,7 +46,7 @@ public:
      * @param value value to be insert
      * @return Is the operation executed.
      */
-    bool put(uint64_t key, std::string value);
+    bool put(uint64_t key, const std::string& value);
 
     /**
      * Remove key-value pair with certain key
@@ -71,13 +71,13 @@ public:
      * Memory size after this MemTable being generated to .sst file
      * @return memory byte size
      */
-    uint64_t mem_size();
+    uint64_t mem_size() const;
 
     /**
      * get the number of key-value pair in SkipList
      * @return size of SkipList
      */
-    uint64_t get_kv_count();
+    uint64_t get_kv_count() const;
 
     /**
      * Clear all datas in this memTable

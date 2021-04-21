@@ -1,7 +1,7 @@
 #pragma once
 
 #include <bitset>
-#include "global.h"
+#include "MergeBuffer.h"
 
 const size_t FILTER_BIT_SIZE = 10 * (1 << 13);
 const size_t FILTER_BYTE_SIZE = 10 * (1 << 10);
@@ -66,6 +66,9 @@ public:
      * Constructor for SSTable from disk, only used when rebuilding LSM tree from dir
      */
     explicit SSTable(const std::string &file_path);
+    /**
+     * Destructor, does not delete SSTable file for persistence
+     */
     ~SSTable();
 
     /**
@@ -87,11 +90,19 @@ public:
      */
     std::string get_by_index(uint64_t index);
 
-    friend std::vector<SSTable*> merge(std::vector<SSTable*> prepared_data, uint64_t &time_stamp, bool is_delete, const std::string &dir);
+    /**
+     * merge several SSTables and write them to Disk at the same time
+     * @param prepared_data SSTables to be merged
+     * @param time_stamp current time stamp to initialise new SSTable
+     * @param is_delete if true, delete all data with "~DELETED~" flag
+     * @param dir target write dictionary
+     * @return merged SSTables
+     */
+    friend std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, uint64_t &time_stamp, bool is_delete, const std::string &dir);
 
     scope_type getScope();
 
-    uint64_t get_time_stamp();
+    uint64_t get_time_stamp() const;
 
     /**
      * open the SSTable file to prepare for reading data continuously
@@ -107,7 +118,9 @@ public:
      */
     std::string read_by_index(std::ifstream &fs, uint64_t index);
 
-    friend bool operator<(const SSTable& a, const SSTable& b) {
-        return a.table_header.time_stamp > b.table_header.time_stamp;
-    }
+    friend bool operator<(const SSTable& a, const SSTable& b);
+
+    std::string get(uint64_t key);
+
+    void delete_file();
 };

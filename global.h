@@ -47,3 +47,23 @@ struct MergeData {
 
     friend bool operator<(MergeData a, MergeData b);
 };
+
+struct TimeIndexPair {
+    uint64_t time_stamp;
+    uint64_t index;
+
+    TimeIndexPair(uint64_t ts, uint64_t i): time_stamp(ts), index(i) {}
+
+    friend bool operator<(TimeIndexPair a, TimeIndexPair b);
+};
+
+struct KeyIndexPair {
+    uint64_t min_key;
+    uint64_t index;
+
+    KeyIndexPair(uint64_t mk, uint64_t i): min_key(mk), index(i) {}
+
+    friend bool operator<(KeyIndexPair a, KeyIndexPair b);
+};
+
+bool sst_suffix(const char* filePath);

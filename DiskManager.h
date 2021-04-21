@@ -14,17 +14,21 @@ private:
 
     uint64_t time_stamp;
 
+    const std::string dir;
+
 public:
 
-    DiskManager();
-
-    DiskManager(const std::string &dir);
+    explicit DiskManager(const std::string& dir);
 
     ~DiskManager();
 
     void push_ssTable(SSTable *new_table);
 
     std::string get(uint64_t key);
+
+    uint64_t get_time_stamp() const;
+
+    void clear();
 
 };
 
