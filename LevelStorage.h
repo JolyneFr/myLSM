@@ -8,6 +8,8 @@ private:
 
     size_t level;
 
+    std::string level_path;
+
     /**
      * search for the position of given key
      * @param key query key
@@ -19,8 +21,7 @@ private:
 
 public:
 
-    explicit LevelStorage(size_t ls);
-    LevelStorage(const std::string& level_dir, size_t ls, uint64_t &ts_ref);
+    LevelStorage(const std::string& level_dir, size_t ls);
     ~LevelStorage();
 
     void push_back(SSTable *);
@@ -37,6 +38,10 @@ public:
 
     std::string get(uint64_t key, uint64_t &ret_ts);
 
-    void clear();
+    void delete_level();
+
+    std::string get_level_path();
+
+    uint64_t scan_level();
 
 };

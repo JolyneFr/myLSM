@@ -3,9 +3,11 @@
 
 
 KVStore::KVStore(const std::string &dir):
-    KVStoreAPI(dir), store(DiskManager(dir)), data_dir(dir) {}
+    KVStoreAPI(dir), store(DiskManager(dir)) {}
 
-KVStore::~KVStore() = default;
+KVStore::~KVStore() {
+    store.push_table(&memTable);
+}
 
 /**
  * Insert/Update the key-value pair.
@@ -14,10 +16,8 @@ KVStore::~KVStore() = default;
 void KVStore::put(uint64_t key, const std::string &s)
 {
     if (!memTable.put(key, s)) {
-        uint64_t kv_count = memTable.get_kv_count();
-        uint64_t ts = store.get_time_stamp();
-        auto new_ssTable = new SSTable(memTable.get_bottom_head(), kv_count, ts, data_dir + "/level-0/");
-        store.push_ssTable(new_ssTable);
+
+        store.push_table(&memTable);
 
         memTable.clear();
         memTable.put(key, s);

@@ -2,12 +2,14 @@
 #include "LevelStorage.h"
 #include "utils.h"
 
-LevelStorage::LevelStorage(size_t l): level(l) {}
+LevelStorage::LevelStorage(const std::string& dir, size_t l): level(l) {
+    level_path = dir + "/level-" + my_itoa(l);
+}
 
-LevelStorage::LevelStorage(const std::string& dir, size_t l, uint64_t &ts_ref): level(l) {
-    std::string level_str = dir + "/level-" + my_itoa(l) + "/";
+uint64_t LevelStorage::scan_level() {
     std::vector<std::string> dir_list;
-    utils::scanDir(level_str, dir_list);
+    utils::scanDir(level_path, dir_list);
+    uint64_t max_ts = 0;
 
     // heap sort ->
     std::priority_queue<KeyIndexPair> sort_heap;
@@ -15,9 +17,9 @@ LevelStorage::LevelStorage(const std::string& dir, size_t l, uint64_t &ts_ref): 
     std::vector<SSTable*> sort_buffer;
     for (const auto& file_str : dir_list) {
         if (sst_suffix(file_str.c_str())) {
-            auto new_ssTable = new SSTable(level_str + file_str);
-            if (new_ssTable->get_time_stamp() > ts_ref) {
-                ts_ref = new_ssTable->get_time_stamp() + 1;
+            auto new_ssTable = new SSTable(level_path + "/" + file_str);
+            if (new_ssTable->get_time_stamp() > max_ts) {
+                max_ts = new_ssTable->get_time_stamp();
             }
             sort_buffer.push_back(new_ssTable);
             sort_heap.push(KeyIndexPair(new_ssTable->getScope().first, table_index++));
@@ -27,9 +29,14 @@ LevelStorage::LevelStorage(const std::string& dir, size_t l, uint64_t &ts_ref): 
         level_tables.push_back(sort_buffer[sort_heap.top().index]);
         sort_heap.pop();
     }
+    return max_ts;
 }
 
-LevelStorage::~LevelStorage() = default;
+LevelStorage::~LevelStorage() {
+    for (SSTable *del_table : level_tables) {
+        delete del_table;
+    }
+}
 
 void LevelStorage::push_back(SSTable* new_ssTable) {
     level_tables.push_back(new_ssTable);
@@ -133,8 +140,13 @@ std::string LevelStorage::get(uint64_t key, uint64_t &ret_ts) {
     return "";
 }
 
-void LevelStorage::clear() {
+void LevelStorage::delete_level() {
     for (auto del_table : level_tables) {
         del_table->delete_file();
+        utils::rmdir(level_path.c_str());
     }
+}
+
+std::string LevelStorage::get_level_path() {
+    return level_path;
 }

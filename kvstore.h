@@ -9,8 +9,6 @@ class KVStore : public KVStoreAPI {
 private:
     SkipList memTable;
     DiskManager store;
-	uint64_t cur_time_stamp = 0;
-	std::string data_dir;
 
 public:
 	KVStore(const std::string &dir);

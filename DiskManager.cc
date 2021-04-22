@@ -12,9 +12,18 @@ DiskManager::DiskManager(const std::string& d): time_stamp(1), dir(d) {
             std::string cur_match_name = "level-" + my_itoa(i);
             auto dir_str = dir_list.begin();
             while (dir_str != dir_list.end()) {
-                if (!strcmp(cur_match_name.c_str(), dir_str->c_str())) {
-                    disk_levels.push_back(new LevelStorage(cur_match_name, i, time_stamp));
+                if (cur_match_name == (*dir_str)) {
+                    auto new_level = new LevelStorage(dir, i);
+                    uint64_t max_ts = new_level->scan_level();
+                    if (!new_level->get_size()) { // no sstable file exists
+                        dir_str = dir_list.end();
+                        delete new_level;
+                        break;
+                    }
+                    if (time_stamp <= max_ts) time_stamp = max_ts + 1;
+                    disk_levels.push_back(new_level);
                 }
+                dir_str++;
             }
             if (dir_str == dir_list.end()) break;
         }
@@ -43,7 +52,7 @@ void DiskManager::handle_overflow(size_t overflowed_index) {
     if (overflowed_index == disk_levels.size() - 1) { // next dir doesn't exists
         std::string new_level_dir = dir + "/level-" + my_itoa(overflowed_index + 1);
         utils::mkdir(new_level_dir.c_str());
-        auto new_level = new LevelStorage(overflowed_index + 1);
+        auto new_level = new LevelStorage(dir, overflowed_index + 1);
         disk_levels.push_back(new_level);
     }
 
@@ -52,6 +61,7 @@ void DiskManager::handle_overflow(size_t overflowed_index) {
     for (SSTable *cur_table : overflowed_tables) {
         std::vector<SSTable*> merge_set = { cur_table };
         auto overlap_boundary = next_level->find_overlap(cur_table->getScope());
+        auto level_path = next_level->get_level_path();
 
         auto level_data = next_level->get_level();
         auto header = std::vector<SSTable*>(level_data->begin(), overlap_boundary.first);
@@ -61,7 +71,7 @@ void DiskManager::handle_overflow(size_t overflowed_index) {
         overlap.push_back(cur_table);
         // if next level is the bottom, delete all "~DELETED~" flags
         bool is_delete = overflowed_index == disk_levels.size() - 2;
-        std::vector<SSTable*> merged_set = merge_table(overlap, time_stamp, is_delete, dir);
+        std::vector<SSTable*> merged_set = merge_table(overlap, time_stamp, is_delete, level_path);
 
         std::vector<SSTable*> new_level_data;
         for (SSTable *append_table : header) {
@@ -84,9 +94,10 @@ bool DiskManager::check_overflow(size_t index) {
 }
 
 void DiskManager::push_ssTable(SSTable *new_table) {
-    time_stamp++;
     if (disk_levels.empty()) {
-        disk_levels.push_back(new LevelStorage(0));
+        std::string lv0 = dir + "/level-0";
+        utils::mkdir(lv0.c_str());
+        disk_levels.push_back(new LevelStorage(dir, 0));
     }
     disk_levels[0]->push_back(new_table);
     size_t cur_level = 0;
@@ -95,6 +106,19 @@ void DiskManager::push_ssTable(SSTable *new_table) {
         handle_overflow(cur_level);
         cur_level++;
     }
+}
+
+void DiskManager::push_ssTable(ListNode *head, uint64_t kv_count) {
+    if (!kv_count) return;
+
+    auto new_ssTable = new SSTable(head, kv_count, time_stamp++, dir + "/level-0");
+    push_ssTable(new_ssTable);
+}
+
+void DiskManager::push_table(SkipList *memTable) {
+    ListNode *head = memTable->get_bottom_head();
+    uint64_t kv_count = memTable->get_kv_count();
+    push_ssTable(head, kv_count);
 }
 
 std::string DiskManager::get(uint64_t key) {
@@ -111,12 +135,8 @@ std::string DiskManager::get(uint64_t key) {
     return ret_string;
 }
 
-uint64_t DiskManager::get_time_stamp() const {
-    return time_stamp;
-}
-
 void DiskManager::clear() {
     for (auto del_level : disk_levels) {
-        del_level->clear();
+        del_level->delete_level();
     }
 }

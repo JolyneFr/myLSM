@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LevelStorage.h"
+#include "SkipList.h"
 
 class DiskManager {
 
@@ -16,17 +17,19 @@ private:
 
     const std::string dir;
 
+    void push_ssTable(SSTable *new_table);
+
+    void push_ssTable(ListNode *head, uint64_t kv_count);
+
 public:
 
     explicit DiskManager(const std::string& dir);
 
     ~DiskManager();
 
-    void push_ssTable(SSTable *new_table);
+    void push_table(SkipList *memTable);
 
     std::string get(uint64_t key);
-
-    uint64_t get_time_stamp() const;
 
     void clear();
 

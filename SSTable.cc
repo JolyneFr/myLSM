@@ -54,7 +54,7 @@ size_t SSTable::binary_search(uint64_t key) {
 
 SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &dir) {
 
-    file_path = dir + my_itoa(ts) + ".sst";
+    file_path = dir + "/" + my_itoa(ts) + ".sst";
 
     uint64_t kc = data->size();
     uint64_t min = data->begin()->first;
@@ -107,7 +107,7 @@ SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &
 
 SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std::string &dir) {
     // dir includes data and level
-    file_path = dir + my_itoa(ts) + ".sst";
+    file_path = dir + "/" + my_itoa(ts) + ".sst";
 
     // Generate the remaining data members at the same time
     data_index = new IndexData[kv_count];
@@ -151,7 +151,8 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
     ssTable_in_file.close();
 }
 
-SSTable::SSTable(const std::string &file_path) {
+SSTable::SSTable(const std::string &_file_path) {
+    file_path = _file_path;
     std::ifstream cur_SSTable(file_path);
 
     cur_SSTable.read((char*)(&table_header), sizeof(Header));

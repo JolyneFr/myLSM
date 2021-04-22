@@ -7,4 +7,4 @@ set(LSM_SRC MergeBuffer.cc DiskManager.cc kvstore.cc LevelStorage.cc SkipList.cc
 
 add_executable(correctness correctness.cc ${LSM_SRC})
 add_executable(persistence persistence.cc ${LSM_SRC})
-add_executable(my_test main.cpp ${LSM_SRC})
+add_executable(my_test main.cc ${LSM_SRC})
