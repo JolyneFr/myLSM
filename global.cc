@@ -38,12 +38,14 @@ bool operator<(MergeData a, MergeData b) {
     return a.min_key > b.min_key;
 }
 
-bool operator<(TimeIndexPair a, TimeIndexPair b) {
-    return a.time_stamp > b.time_stamp;
-}
-
 bool operator<(KeyIndexPair a, KeyIndexPair b) {
     return a.min_key > b.min_key;
+}
+
+bool operator<(SSTableComparator a, SSTableComparator b) {
+    if (a.time_stamp == b.time_stamp)
+        return a.min_key > b.min_key;
+    return a.time_stamp > b.time_stamp;
 }
 
 char* substr(const char* str, unsigned start, unsigned end) {

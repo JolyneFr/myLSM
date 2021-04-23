@@ -98,7 +98,7 @@ public:
      * @param dir target write dictionary
      * @return merged SSTables
      */
-    friend std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, uint64_t &time_stamp, bool is_delete, const std::string &dir);
+    friend std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_delete, const std::string &dir);
 
     scope_type getScope();
 

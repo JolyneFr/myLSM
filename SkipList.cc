@@ -70,6 +70,11 @@ bool SkipList::put(uint64_t key, const std::string& value) {
         hot = hot->below;
     }
 
+    uint64_t pred_length = data_total_length + value.size();
+    if (cal_size(data_count + 1, pred_length) > MAX_BYTE_SIZE) {
+        return false;
+    }
+
     // handle insert
     bool isUp = true;
     ListNode *below_node = nullptr;
@@ -87,10 +92,6 @@ bool SkipList::put(uint64_t key, const std::string& value) {
         auto *new_node = new ListNode(key, value);
         new_node->insertAfterAbove(head, below_node);
         head->below = old_head;
-    }
-    uint64_t pred_length = data_total_length + value.size();
-    if (cal_size(data_count + 1, pred_length) > MAX_BYTE_SIZE) {
-        return false;
     }
     data_count++;
     data_total_length = pred_length;

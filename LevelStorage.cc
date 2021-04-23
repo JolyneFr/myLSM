@@ -92,10 +92,12 @@ std::vector<SSTable*> LevelStorage::pop_k(size_t k) {
         selected_tables = level_tables;
         level_tables.clear();
     } else { // pop tables with smaller time stamp
-        std::priority_queue<TimeIndexPair> select_heap;
+        std::priority_queue<SSTableComparator> select_heap;
         size_t level_size = level_tables.size();
         for (size_t i = 0; i < level_size; ++i) {
-            select_heap.push(TimeIndexPair(level_tables[i]->get_time_stamp(), i));
+            auto tb_ptr = level_tables[i];
+            SSTableComparator new_comparator(tb_ptr->get_time_stamp(), tb_ptr->getScope().first, i);
+            select_heap.push(new_comparator);
         }
         for (size_t i = 0; i < k; ++i) {
             SSTable *new_table = level_tables[select_heap.top().index];
@@ -143,8 +145,8 @@ std::string LevelStorage::get(uint64_t key, uint64_t &ret_ts) {
 void LevelStorage::delete_level() {
     for (auto del_table : level_tables) {
         del_table->delete_file();
-        utils::rmdir(level_path.c_str());
     }
+    utils::rmdir(level_path.c_str());
 }
 
 std::string LevelStorage::get_level_path() {

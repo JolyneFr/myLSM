@@ -42,19 +42,10 @@ struct MergeData {
     uint64_t table_index;
     std::ifstream *file_stream;
 
-    MergeData(uint64_t mk, uint64_t ts, uint64_t i, uint64_t ti,std::ifstream *fs):
+    MergeData(uint64_t mk, uint64_t ts, uint64_t i, uint64_t ti, std::ifstream *fs):
         min_key(mk), time_stamp(ts), index(i), table_index(ti), file_stream(fs) {}
 
     friend bool operator<(MergeData a, MergeData b);
-};
-
-struct TimeIndexPair {
-    uint64_t time_stamp;
-    uint64_t index;
-
-    TimeIndexPair(uint64_t ts, uint64_t i): time_stamp(ts), index(i) {}
-
-    friend bool operator<(TimeIndexPair a, TimeIndexPair b);
 };
 
 struct KeyIndexPair {
@@ -64,6 +55,16 @@ struct KeyIndexPair {
     KeyIndexPair(uint64_t mk, uint64_t i): min_key(mk), index(i) {}
 
     friend bool operator<(KeyIndexPair a, KeyIndexPair b);
+};
+
+struct SSTableComparator {
+    uint64_t min_key;
+    uint64_t time_stamp;
+    uint64_t index;
+
+    SSTableComparator(uint64_t mk, uint64_t ts, uint64_t i): min_key(mk), time_stamp(ts), index(i) {}
+
+    friend bool operator<(SSTableComparator a, SSTableComparator b);
 };
 
 bool sst_suffix(const char* filePath);

@@ -21,6 +21,8 @@ private:
 
     void push_ssTable(ListNode *head, uint64_t kv_count);
 
+    void create_level(uint64_t ls);
+
 public:
 
     explicit DiskManager(const std::string& dir);

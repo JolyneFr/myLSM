@@ -35,7 +35,7 @@ namespace utils{
      * @return files number.
      */
     #ifdef _WIN32
-    int scanDir(std::string path, std::vector<std::string> &ret){
+    inline int scanDir(std::string path, std::vector<std::string> &ret){
         std::string extendPath;
         if(path[path.size() - 1] == '/'){
             extendPath = path + "*";
@@ -69,8 +69,9 @@ namespace utils{
             strcpy(s,rent->d_name);
             if (s[0] != '.'){
                 ret.push_back(s);
-            }   
+            }
         }
+        closedir(dir);
         return ret.size();
     }
     #endif
