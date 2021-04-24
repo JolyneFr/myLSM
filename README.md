@@ -28,6 +28,6 @@ Explanation of each class / file:
 
 ### TODOs:
 + Fixes the issue that doesn't work properly under Windows
-+ Optimize compact operation by handling one overflow sst a time  
++ Optimize compact operation by handling one overflowed sst a time  
 + Add appropriate comments to each function
 
