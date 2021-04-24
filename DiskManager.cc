@@ -153,4 +153,6 @@ void DiskManager::clear() {
     for (auto del_level : disk_levels) {
         del_level->delete_level();
     }
+    disk_levels.clear();
+    time_stamp = 1;
 }

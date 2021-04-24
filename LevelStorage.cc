@@ -75,6 +75,7 @@ void LevelStorage::delete_level() {
         del_table.second->delete_file();
     }
     utils::rmdir(level_path.c_str());
+    level_tables.clear();
 }
 
 std::string LevelStorage::get_level_path() {

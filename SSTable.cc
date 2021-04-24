@@ -355,6 +355,7 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
     // close all ifstream
     for (auto fs : fs_store) {
         fs->close();
+        delete fs;
     }
 
     return merged_data;
