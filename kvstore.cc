@@ -31,7 +31,6 @@ void KVStore::put(uint64_t key, const std::string &s)
 std::string KVStore::get(uint64_t key)
 {
 	std::string mem_str = memTable.get(key);
-	size_t  a = mem_str.size();
 	if (!mem_str.empty()) {
 	    if (mem_str == "~DELETED~")
 	        return "";

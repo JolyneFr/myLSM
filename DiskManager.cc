@@ -2,7 +2,7 @@
 #include "utils.h"
 #include <iostream>
 
-DiskManager::DiskManager(const std::string& d): time_stamp(0), dir(d) {
+DiskManager::DiskManager(const std::string& d): time_stamp(1), dir(d) {
     if (!utils::dirExists(dir)) {
         utils::mkdir(d.c_str());
     } else {
@@ -74,34 +74,32 @@ void DiskManager::handle_overflow(size_t overflowed_index) {
             overflow_scope.second = cur_scope.second;
     }
 
-    auto overlap_boundary = next_level->find_overlap(overflow_scope);
     auto level_path = next_level->get_level_path();
+    auto next_lv_map = next_level->get_level();
 
-    auto level_data = next_level->get_level();
-    auto header = std::vector<SSTable*>(level_data->begin(), overlap_boundary.first);
-    auto overlap = std::vector<SSTable*>(overlap_boundary.first, overlap_boundary.second);
-    auto tail = std::vector<SSTable*>(overlap_boundary.second, level_data->end());
-
-    for (auto cur_table : overflowed_tables) {
-        overlap.push_back(cur_table);
+    auto find_itr = next_lv_map->begin();
+    std::vector<std::map<key_type, SSTable*>::iterator> del_record;
+    while (find_itr != next_lv_map->end()) {
+        auto cur_table = find_itr->second;
+        if (isInScope(overflow_scope, cur_table->getScope().first) ||
+        isInScope(overflow_scope, cur_table->getScope().second)) {
+            del_record.push_back(find_itr);
+            overflowed_tables.push_back(cur_table);
+        }
+        find_itr++;
     }
+
+    for (auto del_itr : del_record) {
+        next_lv_map->erase(del_itr);
+    }
+
     // if next level is the bottom, delete all "~DELETED~" flags
     bool is_delete = overflowed_index == disk_levels.size() - 2;
-    std::vector<SSTable*> merged_set = merge_table(overlap, is_delete, level_path);
+    auto merged = merge_table(overflowed_tables, is_delete, level_path);
 
-    std::vector<SSTable*> new_level_data;
-    // pre-allocate space
-    new_level_data.reserve(header.size() + merged_set.size() + tail.size());
-    for (SSTable *append_table : header) {
-        new_level_data.push_back((append_table));
+    for (auto insert : merged) {
+        next_level->push_back(insert);
     }
-    for (SSTable *append_table : merged_set) {
-        new_level_data.push_back((append_table));
-    }
-    for (SSTable *append_table : tail) {
-        new_level_data.push_back((append_table));
-    }
-    next_level->set_tables(new_level_data);
 
 }
 
@@ -143,13 +141,12 @@ std::string DiskManager::get(uint64_t key) {
     for (auto cur_level : disk_levels) {
         uint64_t cur_ts = 0;
         std::string cur_str = cur_level->get(key, cur_ts);
-        size_t a = cur_str.size();
-        if (cur_ts > max_time_stamp && cur_str != "~DELETED~") {
+        if (cur_ts > max_time_stamp) {
             ret_string = cur_str;
             max_time_stamp = cur_ts;
         }
     }
-    return ret_string;
+    return ret_string == "~DELETED~" ? "" : ret_string;
 }
 
 void DiskManager::clear() {

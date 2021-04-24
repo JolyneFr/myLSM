@@ -1,10 +1,11 @@
 #include "SSTable.h"
+#include <map>
 
 class LevelStorage {
 
 private:
 
-    std::vector<SSTable*> level_tables;
+    std::map<key_type, SSTable*> level_tables;
 
     size_t level;
 
@@ -26,15 +27,9 @@ public:
 
     void push_back(SSTable *);
 
-    std::pair<std::vector<SSTable*>::iterator, std::vector<SSTable*>::iterator> find_overlap(std::pair<uint64_t, uint64_t>);
-
-    std::vector<SSTable*> *get_level();
-
     size_t get_size();
 
     std::vector<SSTable*> pop_k(size_t k);
-
-    void set_tables(std::vector<SSTable*> init_tables);
 
     std::string get(uint64_t key, uint64_t &ret_ts);
 
@@ -43,5 +38,7 @@ public:
     std::string get_level_path();
 
     uint64_t scan_level();
+
+    std::map<key_type, SSTable*> *get_level();
 
 };

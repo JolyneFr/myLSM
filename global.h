@@ -12,6 +12,8 @@ typedef std::pair<uint64_t, std::string> value_type;
 
 typedef std::pair<uint64_t, uint64_t> scope_type;
 
+typedef std::pair<uint64_t, uint64_t> key_type;
+
 uint64_t cal_size(uint64_t count, uint64_t length);
 
 std::string my_itoa(uint64_t tmp);

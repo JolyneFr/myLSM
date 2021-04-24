@@ -54,12 +54,12 @@ size_t SSTable::binary_search(uint64_t key) {
 
 SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &dir) {
 
-    file_path = dir + "/" + my_itoa(ts) + ".sst";
-
     uint64_t kc = data->size();
     uint64_t min = data->begin()->first;
     uint64_t max = (data->end() - 1)->first;
     table_header = Header(ts, kc, min, max);
+
+    file_path = dir + "/" + my_itoa(ts) + "-" + my_itoa(min) + ".sst";
 
     header_offset = cal_size(kc, 0);
 
@@ -106,8 +106,6 @@ SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &
 }
 
 SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std::string &dir) {
-    // dir includes data and level
-    file_path = dir + "/" + my_itoa(ts) + ".sst";
 
     // Generate the remaining data members at the same time
     data_index = new IndexData[kv_count + 1];
@@ -136,6 +134,8 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
     uint64_t max = cur_node->key;
     table_header = Header(ts, kv_count, min, max);
     header_offset = cal_size(kv_count, 0);
+
+    file_path = dir + "/" + my_itoa(ts) + "-" + my_itoa(min) + ".sst";
 
     // write front header to file
     std::ofstream ssTable_in_file(file_path, std::ios_base::trunc);
