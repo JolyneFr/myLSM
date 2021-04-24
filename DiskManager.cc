@@ -2,7 +2,7 @@
 #include "utils.h"
 #include <iostream>
 
-DiskManager::DiskManager(const std::string& d): time_stamp(0), dir(d) {
+DiskManager::DiskManager(const std::string& d): time_stamp(1), dir(d) {
     if (!utils::dirExists(dir)) {
         utils::mkdir(d.c_str());
     } else {

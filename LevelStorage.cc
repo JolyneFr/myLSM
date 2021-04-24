@@ -54,15 +54,18 @@ std::vector<SSTable*> LevelStorage::pop_k(size_t k) {
 std::string LevelStorage::get(uint64_t key, uint64_t &ret_ts) {
     std::string ret_string;
     size_t find_ind = level_tables.size();
-    auto find_itr = level_tables.end();
+    auto find_itr = level_tables.rbegin();
     // find from tables with bigger time stamp
-    while (find_ind--) {
+    while (find_itr != level_tables.rend()) {
         SSTable *cur_tb = find_itr->second;
         if (isInScope(cur_tb->getScope(), key)) {
             std::string tmp_string = cur_tb->get(key);
-            if (!tmp_string.empty()) return tmp_string; // may be "~DELETED~"
+            if (!tmp_string.empty()) {
+                ret_ts = cur_tb->get_time_stamp();
+                return tmp_string; // may be "~DELETED~"
+            }
         }
-        find_itr--;
+        find_itr++;
     }
     return "";
 }
