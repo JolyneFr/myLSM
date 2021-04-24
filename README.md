@@ -1,34 +1,33 @@
-## Project 1: KVStore using Log-structured Merge Tree
+## myLSM: KVStore using Log-structured Merge Tree
 
+Current version of myLSM can pass all correctness / persistence test on Linux, 
+without any memory-leak. However, trying to run test on Windows would cause unpredictable 
+problems. I will fix this issue 2 weeks later.
 
-The handout files include two main parts:
-
-- The `KVStoreAPI` class in `kvstore_api.h` that specifies the interface of KVStore.
-- Test files including correctness test (`correctness.cc`) and persistence test (`persistence.cc`).
-
-Explanation of each handout file:
+Explanation of each class / file:
 
 ```text
 .
-├── Makefile  // Makefile if you use GNU Make
+├── CMakeList.txt  // build file of myLSM using cmake
 ├── README.md // This readme file
-├── correctness.cc // Correctness test, you should not modify this file
-├── data      // Data directory used in our test
-├── kvstore.cc     // your implementation
-├── kvstore.h      // your implementation
-├── kvstore_api.h  // KVStoreAPI, you should not modify this file
-├── persistence.cc // Persistence test, you should not modify this file
+├── data      // Data directory used in test
+├── kvstore     // Top level implementation for LSM tree
+├── SkipList     // Data structure of MemTable
+├── DiskManager   // Manage all levels stored in disk, handling compaction
+├── LevelStorage    // Store all ssTables in the same level
+├── SSTable     // Maintain metadata of a stored sorted table
+├── MergeBuffer   // Linear structure for generating SSTs when merging
+├── global      // Definitions of generic constants, functions and structs
+├── kvstore_api.h  // A defined interface of key-value pair store program
 ├── utils.h         // Provides some cross-platform file/directory interface
 ├── MurmurHash3.h  // Provides murmur3 hash function
-└── test.h         // Base class for testing, you should not modify this file
+├── correctness.cc // Correctness test
+├── persistence.cc // Persistence test
+└── test.h         // Base class for testing
 ```
 
-
-First have a look at the `kvstore_api.h` file to check functions you need to implement. Then modify the `kvstore.cc` and `kvstore.h` files and feel free to add new class files.
-
-We will use all files with `.cc`, `.cpp`, `.cxx` suffixes to build correctness and persistence tests. Thus, you can use any IDE to finish this project as long as you ensure that all C++ source files are submitted.
-
-For the test files, of course you could modify it to debug your programs. But remember to change it back when you are testing.
-
-Good luck :)
+### TODOs:
++ Fixes the issue that doesn't work properly under Windows
++ Optimize compact operation by handling one overflow sst a time  
++ Add appropriate comments to each function
 
