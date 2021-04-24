@@ -78,14 +78,19 @@ void DiskManager::handle_overflow(size_t overflowed_index) {
     auto next_lv_map = next_level->get_level();
 
     auto find_itr = next_lv_map->begin();
+    std::vector<std::map<key_type, SSTable*>::iterator> del_record;
     while (find_itr != next_lv_map->end()) {
         auto cur_table = find_itr->second;
         if (isInScope(overflow_scope, cur_table->getScope().first) ||
         isInScope(overflow_scope, cur_table->getScope().second)) {
-            next_lv_map->erase(find_itr);
+            del_record.push_back(find_itr);
             overflowed_tables.push_back(cur_table);
         }
         find_itr++;
+    }
+
+    for (auto del_itr : del_record) {
+        next_lv_map->erase(del_itr);
     }
 
     // if next level is the bottom, delete all "~DELETED~" flags
@@ -141,7 +146,7 @@ std::string DiskManager::get(uint64_t key) {
             max_time_stamp = cur_ts;
         }
     }
-    return ret_string;
+    return ret_string == "~DELETED~" ? "" : ret_string;
 }
 
 void DiskManager::clear() {
