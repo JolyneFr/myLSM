@@ -13,8 +13,8 @@ Explanation of each class / file:
 ├── data      // Data directory used in test
 ├── kvstore     // Top level implementation for LSM tree
 ├── SkipList     // Data structure of MemTable
-├── DiskManager   // Manage all levels stored in disk, handling compaction
-├── LevelStorage    // Store all ssTables in the same level
+├── DiskRepo   // Manage all levels stored in disk, handling compaction
+├── Level    // Store all ssTables in the same level
 ├── SSTable     // Maintain metadata of a stored sorted table
 ├── MergeBuffer   // Linear structure for generating SSTs when merging
 ├── global      // Definitions of generic constants, functions and structs
@@ -29,5 +29,4 @@ Explanation of each class / file:
 ### TODOs:
 + Fixes the issue that doesn't work properly under Windows
 + Optimize compact operation by handling one overflowed sst a time  
-+ Add appropriate comments to each function
 

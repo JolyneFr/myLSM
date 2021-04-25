@@ -3,9 +3,6 @@
 #include <bitset>
 #include "MergeBuffer.h"
 
-const size_t FILTER_BIT_SIZE = 10 * (1 << 13);
-const size_t FILTER_BYTE_SIZE = 10 * (1 << 10);
-
 class SSTable {
 private:
 
@@ -40,9 +37,6 @@ private:
      */
     size_t binary_search(uint64_t);
 
-    // never store data string in memory
-    std::string *data_string = nullptr;
-
 public:
 
     /**
@@ -54,7 +48,7 @@ public:
     SSTable(std::vector<value_type> *data, uint64_t time_stamp, const std::string &dir);
 
     /**
-     * faster & lower memory cost Constructor for SSTable, the low coupling degree is lost.
+     * Faster & lower memory cost Constructor for SSTable, the low coupling degree is lost.
      * Also writing SSTable to level-0 immediately.
      * @param data_head head node of the lowest level in SkipList, which contains all key-value pairs
      * @param time_stamp current SSTable's time stamp
@@ -63,35 +57,29 @@ public:
     SSTable(ListNode *data_head, uint64_t kv_count, uint64_t time_stamp, const std::string &dir);
 
     /**
-     * Constructor for SSTable from disk, only used when rebuilding LSM tree from dir
+     * Constructor for SSTable from disk, only used when rebuilding LSM tree from dir.
      */
     explicit SSTable(const std::string &file_path);
     /**
-     * Destructor, does not delete SSTable file for persistence
+     * Destructor, does not delete SSTable file for persistence.
      */
     ~SSTable();
 
     /**
-     * save SSTable in defined structure
+     * Save SSTable in defined structure.
      * @param ssTable_in_file oftream to stored SSTable
      */
-    void writeHeaderToFile(std::ofstream &ssTable_in_file);
+    void write_header(std::ofstream &ssTable_in_file);
 
     /**
-     * get data stored in current SSTable
-     * @return data stored in std::vector
-     */
-    std::vector<value_type> getData();
-
-    /**
-     * find data with given index, use this function to get single data
+     * Find data with given index, use this function to get single data.
      * @param index data index 
      * @return current queried string ("" if index >= size)
      */
     std::string get_by_index(uint64_t index);
 
     /**
-     * merge several SSTables and write them to Disk at the same time
+     * Merge several SSTables and write them to Disk at the same time.
      * @param prepared_data SSTables to be merged
      * @param time_stamp current time stamp to initialise new SSTable
      * @param is_delete if true, delete all data with "~DELETED~" flag
@@ -100,8 +88,14 @@ public:
      */
     friend std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_delete, const std::string &dir);
 
-    scope_type getScope();
+    /**
+     * @return pair of (min_key, max_keu), which indicates range of data in this SSTable.
+     */
+    scope_type get_scope();
 
+    /**
+     * @return time stamp of current SSTable
+     */
     uint64_t get_time_stamp() const;
 
     /**
@@ -118,9 +112,16 @@ public:
      */
     std::string read_by_index(std::ifstream &fs, uint64_t index);
 
-    friend bool operator<(const SSTable& a, const SSTable& b);
-
+    /**
+     * Get string by key (if any).
+     * Bloom test -> binary search -> read from linked file.
+     * @param key queried key value
+     * @return target string ("" if not exist)
+     */
     std::string get(uint64_t key);
 
+    /**
+     * Delete file linked with current SSTable.
+     */
     void delete_file();
 };

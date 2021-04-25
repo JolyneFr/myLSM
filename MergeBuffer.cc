@@ -40,14 +40,6 @@ void MergeBuffer::clear() {
     rear = head;
 }
 
-void MergeBuffer::pop_back() {
-    ListNode *del = rear;
-    rear = rear->prev;
-    data_count--;
-    data_total_length -= del->value.size();
-    delete del;
-}
-
 void MergeBuffer::delete_all() {
     ListNode *cur_node = head;
     while (cur_node) {

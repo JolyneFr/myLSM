@@ -83,16 +83,13 @@ SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &
         bloom_filter.set(hash[2] % FILTER_BIT_SIZE);
         bloom_filter.set(hash[3] % FILTER_BIT_SIZE); // Expanding the loop to improve efficiency
 
-        // Append string at the end (never used)
-        //data_string[index++] = cur_string;
-
         cur_data++;
     }
     string_length = offset;
 
     // write front header to file
     std::ofstream ssTable_in_file(file_path, std::ios_base::trunc);
-    writeHeaderToFile(ssTable_in_file);
+    write_header(ssTable_in_file);
 
     // write string data to file
     cur_data = data->begin();
@@ -139,7 +136,7 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
 
     // write front header to file
     std::ofstream ssTable_in_file(file_path, std::ios_base::trunc);
-    writeHeaderToFile(ssTable_in_file);
+    write_header(ssTable_in_file);
 
     // write string data to file
     cur_node = data_head->next;
@@ -168,25 +165,10 @@ SSTable::SSTable(const std::string &_file_path) {
         cur_SSTable.read((char*)(&(data_index[ind].key)), 8);
         cur_SSTable.read((char*)(&(data_index[ind].offset)), 4);
     }
-
     
     header_offset = cur_SSTable.tellg();
     cur_SSTable.seekg(0, std::ifstream::end);
     string_length = (size_t)cur_SSTable.tellg() - header_offset;
-    /* no need to read all string from file
-    cur_SSTable.seekg(front_length);
-    data_string = new std::string[KV_COUNT];
-    for (size_t ind = 0; ind < KV_COUNT; ++ind) {
-        size_t cur_length = (ind != KV_COUNT - 1) ? 
-            data_index[ind + 1].offset - data_index[ind].offset : 
-            string_size - data_index[ind].offset;
-
-        char *str_buf = new char[cur_length];
-        cur_SSTable.read(str_buf, cur_length);
-        data_string[ind] = std::string(str_buf, cur_length);
-        delete[] str_buf;
-    }
-    */
 
     cur_SSTable.close();
 }
@@ -195,7 +177,7 @@ SSTable::~SSTable() {
     delete[] data_index;
 }
 
-void SSTable::writeHeaderToFile(std::ofstream &ssTable_in_file) {
+void SSTable::write_header(std::ofstream &ssTable_in_file) {
     uint64_t KV_COUNT = table_header.kv_count;
     ssTable_in_file.write((char*)(&table_header), sizeof(Header));
 
@@ -207,20 +189,6 @@ void SSTable::writeHeaderToFile(std::ofstream &ssTable_in_file) {
         ssTable_in_file.write((char*)(&(data_index[ind].key)), 8);
         ssTable_in_file.write((char*)(&(data_index[ind].offset)), 4);
     }
-
-    /* don't write data string here
-    for (size_t ind = 0; ind < KV_COUNT; ++ind) {
-        cur_SSTable.write(data_string[ind].c_str(), data_string[ind].size());
-    }
-    */
-}
-
-std::vector<std::pair<uint64_t, std::string>> SSTable::getData() {
-    std::vector<std::pair<uint64_t, std::string>> data_set;
-    for (size_t ind = 0; ind < table_header.kv_count; ++ind) {
-        data_set.emplace_back(data_index[ind].key, data_string[ind]);
-    }
-    return data_set;
 }
 
 std::string SSTable::get_by_index(uint64_t index) {
@@ -245,7 +213,7 @@ std::string SSTable::get_by_index(uint64_t index) {
     return cur_data;
 }
 
-scope_type SSTable::getScope() {
+scope_type SSTable::get_scope() {
     return std::make_pair(table_header.min_key, table_header.max_key);
 }
 
@@ -275,7 +243,7 @@ uint64_t SSTable::get_time_stamp() const {
 
 std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_delete, const std::string &dir) {
 
-    std::priority_queue<MergeData> merge_heap;
+    std::priority_queue<MergeInfo> merge_heap;
     std::vector<SSTable*> merged_data;
     MergeBuffer buffer;
     uint64_t max_ts = 0;
@@ -289,13 +257,13 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
         uint64_t ts = cur_table_itr->table_header.time_stamp;
         std::ifstream *fs = cur_table_itr->open_file();
         fs_store[table_index] = fs;
-        merge_heap.push(MergeData(mk, ts, 0, table_index++,fs));
+        merge_heap.push(MergeInfo(mk, ts, 0, table_index++, fs));
 
         if (ts > max_ts) max_ts = ts;
     }
 
     while (!merge_heap.empty()) {
-        MergeData cur_data = merge_heap.top();
+        MergeInfo cur_data = merge_heap.top();
         merge_heap.pop();
         
         uint64_t cur_data_key = cur_data.min_key;
@@ -317,7 +285,7 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
             } else {
                 // delete tag: pop all element with the same key
                 while (!merge_heap.empty() && merge_heap.top().min_key == cur_data_key) {
-                    MergeData deleted_data = merge_heap.top();
+                    MergeInfo deleted_data = merge_heap.top();
                     merge_heap.pop();
                     //set file flag
                     SSTable *cur_tb = prepared_data[deleted_data.table_index];
@@ -359,10 +327,6 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
     }
 
     return merged_data;
-}
-
-bool operator<(const SSTable& a, const SSTable& b) {
-    return a.table_header.time_stamp > b.table_header.time_stamp;
 }
 
 std::string SSTable::get(uint64_t key) {

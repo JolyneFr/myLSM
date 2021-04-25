@@ -1,7 +1,6 @@
 #include "SkipList.h"
 #include <vector>
 #include <random>
-#include <iostream>
 
 SkipList::SkipList() {
     head = new ListNode();
@@ -150,18 +149,4 @@ void SkipList::clear() {
     lowest_head = head;
     data_count = 0;
     data_total_length = 0;
-}
-
-void SkipList::show() {
-    ListNode *cur_layer = head;
-    while (cur_layer) {
-        ListNode *cur_data = cur_layer->next;
-        while (cur_data) {
-            std::cout << cur_data->key << " " << cur_data->value << " | ";
-            cur_data = cur_data->next;
-        }
-        std::cout << std::endl;
-        cur_layer = cur_layer->below;
-    }
-    std::cout << "Memory Usage: " << mem_size() << " Bytes.\n";
 }

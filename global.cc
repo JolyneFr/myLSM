@@ -26,26 +26,16 @@ void ListNode::insertAfterAbove(ListNode *p, ListNode *b){
     this->below = b;
 }
 
-bool isInScope(std::pair<uint64_t, uint64_t> scope, uint64_t key) {
+bool in_scope(std::pair<uint64_t, uint64_t> scope, uint64_t key) {
     return key >= scope.first && key <= scope.second;
 }
 
-bool operator<(MergeData a, MergeData b) {
+bool operator<(MergeInfo a, MergeInfo b) {
     if (a.min_key == b.min_key)
         // smaller time stamp -> later popped
         return a.time_stamp < b.time_stamp;
     // smaller key -> earlier popped
     return a.min_key > b.min_key;
-}
-
-bool operator<(KeyIndexPair a, KeyIndexPair b) {
-    return a.min_key > b.min_key;
-}
-
-bool operator<(SSTableComparator a, SSTableComparator b) {
-    if (a.time_stamp == b.time_stamp)
-        return a.min_key > b.min_key;
-    return a.time_stamp > b.time_stamp;
 }
 
 char* substr(const char* str, unsigned start, unsigned end) {

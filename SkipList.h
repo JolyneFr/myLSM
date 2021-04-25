@@ -56,8 +56,8 @@ public:
     bool remove(uint64_t key);
 
     /**
-     * get datas in SkipList in the order of key value undecreased.
-     * @return std vector that store all datas.
+     * get data in SkipList in the order of key value undecreased.
+     * @return std vector that store all data.
      */
     std::vector<value_type> *exported_data();
 
@@ -80,12 +80,8 @@ public:
     uint64_t get_kv_count() const;
 
     /**
-     * Clear all datas in this memTable
+     * Clear all data in this memTable
      */
     void clear();
 
-    /**
-     * For Debug: show SkipList structure
-     */
-    void show();
 };

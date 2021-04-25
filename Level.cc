@@ -1,12 +1,12 @@
 #include <queue>
-#include "LevelStorage.h"
+#include "Level.h"
 #include "utils.h"
 
-LevelStorage::LevelStorage(const std::string& dir, size_t l): level(l) {
+Level::Level(const std::string& dir, size_t l) {
     level_path = dir + "/level-" + my_itoa(l);
 }
 
-uint64_t LevelStorage::scan_level() {
+uint64_t Level::scan_level() {
     std::vector<std::string> dir_list;
     utils::scanDir(level_path, dir_list);
     uint64_t max_ts = 0;
@@ -25,22 +25,22 @@ uint64_t LevelStorage::scan_level() {
     return max_ts;
 }
 
-LevelStorage::~LevelStorage() {
+Level::~Level() {
     for (auto del_table : level_tables) {
         delete del_table.second;
     }
 }
 
-void LevelStorage::push_back(SSTable* new_ssTable) {
-    key_type table_key = std::make_pair(new_ssTable->get_time_stamp(), new_ssTable->getScope().first);
+void Level::push_back(SSTable* new_ssTable) {
+    key_type table_key = std::make_pair(new_ssTable->get_time_stamp(), new_ssTable->get_scope().first);
     level_tables.insert(std::make_pair(table_key, new_ssTable));
 }
 
-size_t LevelStorage::get_size() {
+size_t Level::get_size() {
     return level_tables.size();
 }
 
-std::vector<SSTable*> LevelStorage::pop_k(size_t k) {
+std::vector<SSTable*> Level::pop_k(size_t k) {
 
     std::vector<SSTable*> selected_tables;
     for (size_t ind = 0; ind < k; ++ind) {
@@ -51,14 +51,14 @@ std::vector<SSTable*> LevelStorage::pop_k(size_t k) {
     return selected_tables;
 }
 
-std::string LevelStorage::get(uint64_t key, uint64_t &ret_ts) {
+std::string Level::get(uint64_t key, uint64_t &ret_ts) {
     std::string ret_string;
     size_t find_ind = level_tables.size();
     auto find_itr = level_tables.rbegin();
     // find from tables with bigger time stamp
     while (find_itr != level_tables.rend()) {
         SSTable *cur_tb = find_itr->second;
-        if (isInScope(cur_tb->getScope(), key)) {
+        if (in_scope(cur_tb->get_scope(), key)) {
             std::string tmp_string = cur_tb->get(key);
             if (!tmp_string.empty()) {
                 ret_ts = cur_tb->get_time_stamp();
@@ -70,7 +70,7 @@ std::string LevelStorage::get(uint64_t key, uint64_t &ret_ts) {
     return "";
 }
 
-void LevelStorage::delete_level() {
+void Level::delete_level() {
     for (auto del_table : level_tables) {
         del_table.second->delete_file();
     }
@@ -78,10 +78,10 @@ void LevelStorage::delete_level() {
     level_tables.clear();
 }
 
-std::string LevelStorage::get_level_path() {
+std::string Level::get_level_path() {
     return level_path;
 }
 
-std::map<key_type, SSTable*> *LevelStorage::get_level() {
+std::map<key_type, SSTable*> *Level::get_level() {
     return &level_tables;
 }

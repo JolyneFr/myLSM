@@ -3,7 +3,7 @@ project(myLSM)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(LSM_SRC MergeBuffer.cc DiskManager.cc kvstore.cc LevelStorage.cc SkipList.cc SSTable.cc global.cc)
+set(LSM_SRC MergeBuffer.cc DiskRepo.cc kvstore.cc Level.cc SkipList.cc SSTable.cc global.cc)
 
 add_executable(correctness correctness.cc ${LSM_SRC})
 add_executable(persistence persistence.cc ${LSM_SRC})
