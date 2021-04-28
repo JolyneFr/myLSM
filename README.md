@@ -27,6 +27,6 @@ Explanation of each class / file:
 ```
 
 ### TODOs:
-+ Fixes the issue that doesn't work properly under Windows
++ ~~Fixes the issue that doesn't work properly under Windows~~ Fixed
 + Optimize compact operation by handling one overflowed sst a time  
 

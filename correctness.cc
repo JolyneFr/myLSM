@@ -11,6 +11,7 @@ private:
 
 	void regular_test(uint64_t max)
 	{
+
 		uint64_t i;
 
 		// Test a single key
@@ -20,7 +21,6 @@ private:
 		EXPECT(true, store.del(1));
 		EXPECT(not_found, store.get(1));
 		EXPECT(false, store.del(1));
-
 		phase();
 
 		// Test multiple key-value pairs

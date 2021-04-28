@@ -88,7 +88,7 @@ SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &
     string_length = offset;
 
     // write front header to file
-    std::ofstream ssTable_in_file(file_path, std::ios_base::trunc);
+    std::ofstream ssTable_in_file(file_path, std::ios_base::trunc | std::ios_base::binary);
     write_header(ssTable_in_file);
 
     // write string data to file
@@ -135,7 +135,7 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
     file_path = dir + "/" + my_itoa(ts) + "-" + my_itoa(min) + ".sst";
 
     // write front header to file
-    std::ofstream ssTable_in_file(file_path, std::ios_base::trunc);
+    std::ofstream ssTable_in_file(file_path, std::ios_base::trunc | std::ios_base::binary);
     write_header(ssTable_in_file);
 
     // write string data to file
@@ -150,7 +150,7 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
 
 SSTable::SSTable(const std::string &_file_path) {
     file_path = _file_path;
-    std::ifstream cur_SSTable(file_path);
+    std::ifstream cur_SSTable(file_path, std::ios_base::in | std::ios_base::binary);
 
     cur_SSTable.read((char*)(&table_header), sizeof(Header));
     uint64_t KV_COUNT = table_header.kv_count;
@@ -161,6 +161,7 @@ SSTable::SSTable(const std::string &_file_path) {
     delete[] buf;
 
     data_index = new IndexData[KV_COUNT + 1];
+    long long test = cur_SSTable.tellg();
     for (size_t ind = 0; ind < KV_COUNT; ++ind) {
         cur_SSTable.read((char*)(&(data_index[ind].key)), 8);
         cur_SSTable.read((char*)(&(data_index[ind].offset)), 4);
@@ -314,16 +315,16 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
         merged_data.push_back(new_table);
     }
 
-    // destruct merged tables, delete old SSTables
-    for (SSTable *merged_table : prepared_data) {
-        merged_table->delete_file();
-        delete merged_table;
-    }
-
     // close all ifstream
     for (auto fs : fs_store) {
         fs->close();
         delete fs;
+    }
+
+    // destruct merged tables, delete old SSTables
+    for (SSTable *merged_table : prepared_data) {
+        merged_table->delete_file();
+        delete merged_table;
     }
 
     return merged_data;
