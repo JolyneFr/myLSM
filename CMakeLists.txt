@@ -7,5 +7,5 @@ set(LSM_SRC MergeBuffer.cc DiskRepo.cc kvstore.cc Level.cc SkipList.cc SSTable.c
 
 add_executable(correctness correctness.cc ${LSM_SRC})
 add_executable(persistence persistence.cc ${LSM_SRC})
-add_executable(my_test main.cc ${LSM_SRC})
+add_executable(my_test mytest.cc ${LSM_SRC})
 

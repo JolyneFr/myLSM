@@ -20,7 +20,7 @@ private:
     } table_header;
 
     std::bitset<FILTER_BIT_SIZE> bloom_filter;
-    char *bitset_to_bytes();
+    void bitset_to_bytes(char*);
     void bitset_from_bytes(const char*);
     bool bloom_test(uint64_t);
     

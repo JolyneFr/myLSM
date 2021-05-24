@@ -15,13 +15,11 @@ SSTable::IndexData::IndexData(): key(0), offset(0) {}
 
 SSTable::IndexData::IndexData(uint64_t k, uint32_t o): key(k), offset(o) {}
 
-char *SSTable::bitset_to_bytes() {
-    char *buf = new char[FILTER_BYTE_SIZE];
+void SSTable::bitset_to_bytes(char *buf) {
     memset(buf, 0, FILTER_BYTE_SIZE);
     for (size_t index = 0; index < FILTER_BIT_SIZE; ++index) {
         buf[index >> 3] |= (bloom_filter[index] << (index & 7));
     }
-    return buf;
 }
 
 void SSTable::bitset_from_bytes(const char* buf) {
@@ -141,7 +139,7 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
     // write string data to file
     cur_node = data_head->next;
     while (cur_node) {
-        ssTable_in_file.write(cur_node->value.c_str(), cur_node->value.size());
+        ssTable_in_file.write(cur_node->value.c_str(), (long long)(cur_node->value.size()));
         cur_node = cur_node->next;
     }
 
@@ -182,7 +180,8 @@ void SSTable::write_header(std::ofstream &ssTable_in_file) {
     uint64_t KV_COUNT = table_header.kv_count;
     ssTable_in_file.write((char*)(&table_header), sizeof(Header));
 
-    char *bit_seq = bitset_to_bytes();
+    char *bit_seq = new char[FILTER_BYTE_SIZE];
+    bitset_to_bytes(bit_seq);
     ssTable_in_file.write(bit_seq, FILTER_BYTE_SIZE);
     delete[] bit_seq;
     

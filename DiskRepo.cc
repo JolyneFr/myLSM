@@ -55,8 +55,6 @@ void DiskRepo::handle_overflow(size_t overflowed_index) {
         overflowed_tables = upper_level->pop_k(merge_num);
     }
 
-    //std::cout << "merged " << overflowed_tables.size() << " tables from upper level-" << overflowed_index << std::endl;
-
     if (overflowed_index == disk_levels.size() - 1) { // next dir doesn't exists
         create_level(overflowed_index + 1);
     }

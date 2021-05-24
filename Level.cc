@@ -53,7 +53,6 @@ std::vector<SSTable*> Level::pop_k(size_t k) {
 
 std::string Level::get(uint64_t key, uint64_t &ret_ts) {
     std::string ret_string;
-    size_t find_ind = level_tables.size();
     auto find_itr = level_tables.rbegin();
     // find from tables with bigger time stamp
     while (find_itr != level_tables.rend()) {
