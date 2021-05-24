@@ -241,7 +241,7 @@ uint64_t SSTable::get_time_stamp() const {
     return table_header.time_stamp;
 }
 
-std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_delete, const std::string &dir) {
+std::vector<SSTable*> merge_table(std::vector<SSTable*> &prepared_data, bool is_delete, const std::string &dir) {
 
     std::priority_queue<MergeInfo> merge_heap;
     std::vector<SSTable*> merged_data;
@@ -291,7 +291,7 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
                     SSTable *cur_tb = prepared_data[deleted_data.table_index];
                     std::string useless_string = cur_tb->read_by_index((*deleted_data.file_stream), deleted_data.index);
 
-                    if (++(deleted_data.index) != cur_table->table_header.kv_count) {
+                    if (++(deleted_data.index) < cur_table->table_header.kv_count) {
                         // if not the end, set index to next element of current table, and push it back to heap
                         deleted_data.min_key = cur_tb->data_index[deleted_data.index].key;
                         merge_heap.push(deleted_data);
@@ -301,7 +301,7 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
         }
 
         // set min key to next element's key, and push it back to heap
-        if (++(cur_data.index) != cur_table->table_header.kv_count) {
+        if (++(cur_data.index) < cur_table->table_header.kv_count) {
             // if not the end, set index to next element of current table, and push it back to heap
             cur_data.min_key = cur_table->data_index[cur_data.index].key;
             merge_heap.push(cur_data);
