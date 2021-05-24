@@ -18,11 +18,6 @@ private:
         Header();
         Header(uint64_t ts, uint64_t kc, uint64_t min, uint64_t max);
     } table_header;
-
-    std::bitset<FILTER_BIT_SIZE> bloom_filter;
-    void bitset_to_bytes(char*);
-    void bitset_from_bytes(const char*);
-    bool bloom_test(uint64_t);
     
     struct IndexData {
         uint64_t key;

@@ -2,7 +2,7 @@
 #include "utils.h"
 
 uint64_t cal_size(uint64_t count, uint64_t length) {
-    return 10272 + 12 * count + length;
+    return 32 + 12 * count + length;
 }
 
 std::string my_itoa(uint64_t tmp) {

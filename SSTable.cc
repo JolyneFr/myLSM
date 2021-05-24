@@ -15,29 +15,6 @@ SSTable::IndexData::IndexData(): key(0), offset(0) {}
 
 SSTable::IndexData::IndexData(uint64_t k, uint32_t o): key(k), offset(o) {}
 
-void SSTable::bitset_to_bytes(char *buf) {
-    memset(buf, 0, FILTER_BYTE_SIZE);
-    for (size_t index = 0; index < FILTER_BIT_SIZE; ++index) {
-        buf[index >> 3] |= (bloom_filter[index] << (index & 7));
-    }
-}
-
-void SSTable::bitset_from_bytes(const char* buf) {
-    for (size_t index = 0; index < FILTER_BIT_SIZE; ++index) {
-        bloom_filter[index] = ((buf[index >> 3] >> (index & 7)) & 1);
-    }
-}
-
-bool SSTable::bloom_test(uint64_t key) {
-    uint32_t cur_hash[4] = {0};
-    MurmurHash3_x64_128(&key, sizeof(key), 1, cur_hash);
-
-    return (bloom_filter.test(cur_hash[0] % FILTER_BIT_SIZE) &&
-            bloom_filter.test(cur_hash[1] % FILTER_BIT_SIZE) &&
-            bloom_filter.test(cur_hash[2] % FILTER_BIT_SIZE) &&
-            bloom_filter.test(cur_hash[3] % FILTER_BIT_SIZE));
-}
-
 size_t SSTable::binary_search(uint64_t key) {
     size_t left = 0, right = table_header.kv_count - 1;
     while (left <= right) {
@@ -73,14 +50,6 @@ SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &
         data_index[index] = IndexData(cur_key, offset);
         offset += cur_data->second.size();
 
-        // Configure bloom filter
-        uint32_t hash[4] = {0};
-        MurmurHash3_x64_128(&cur_key, sizeof(cur_key), 1, hash);
-        bloom_filter.set(hash[0] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[1] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[2] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[3] % FILTER_BIT_SIZE); // Expanding the loop to improve efficiency
-
         cur_data++;
     }
     string_length = offset;
@@ -114,14 +83,6 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
         // Generate data index
         data_index[index++] = IndexData(cur_key, offset);
         offset += cur_node->value.size();
-
-        // Configure bloom filter
-        uint32_t hash[4] = {0};
-        MurmurHash3_x64_128(&cur_key, sizeof(cur_key), 1, hash);
-        bloom_filter.set(hash[0] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[1] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[2] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[3] % FILTER_BIT_SIZE); // Expanding the loop to improve efficiency
     }
     string_length = offset;
 
@@ -153,11 +114,6 @@ SSTable::SSTable(const std::string &_file_path) {
     cur_SSTable.read((char*)(&table_header), sizeof(Header));
     uint64_t KV_COUNT = table_header.kv_count;
 
-    char *buf = new char[FILTER_BYTE_SIZE];
-    cur_SSTable.read(buf, FILTER_BYTE_SIZE);
-    bitset_from_bytes(buf);
-    delete[] buf;
-
     data_index = new IndexData[KV_COUNT + 1];
     long long test = cur_SSTable.tellg();
     for (size_t ind = 0; ind < KV_COUNT; ++ind) {
@@ -179,11 +135,6 @@ SSTable::~SSTable() {
 void SSTable::write_header(std::ofstream &ssTable_in_file) {
     uint64_t KV_COUNT = table_header.kv_count;
     ssTable_in_file.write((char*)(&table_header), sizeof(Header));
-
-    char *bit_seq = new char[FILTER_BYTE_SIZE];
-    bitset_to_bytes(bit_seq);
-    ssTable_in_file.write(bit_seq, FILTER_BYTE_SIZE);
-    delete[] bit_seq;
     
     for (size_t ind = 0; ind < KV_COUNT; ++ind) {
         ssTable_in_file.write((char*)(&(data_index[ind].key)), 8);
@@ -330,11 +281,9 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> &prepared_data, bool is_
 }
 
 std::string SSTable::get(uint64_t key) {
-    if (bloom_test(key)) {
-        size_t ind = binary_search(key);
-        if (ind != table_header.kv_count) {
-            return get_by_index(ind); // may be "~DELETED~"
-        }
+    size_t ind = binary_search(key);
+    if (ind != table_header.kv_count) {
+        return get_by_index(ind); // may be "~DELETED~"
     }
     return "";
 }
