@@ -15,91 +15,6 @@ SSTable::IndexData::IndexData(): key(0), offset(0) {}
 
 SSTable::IndexData::IndexData(uint64_t k, uint32_t o): key(k), offset(o) {}
 
-void SSTable::bitset_to_bytes(char *buf) {
-    memset(buf, 0, FILTER_BYTE_SIZE);
-    for (size_t index = 0; index < FILTER_BIT_SIZE; ++index) {
-        buf[index >> 3] |= (bloom_filter[index] << (index & 7));
-    }
-}
-
-void SSTable::bitset_from_bytes(const char* buf) {
-    for (size_t index = 0; index < FILTER_BIT_SIZE; ++index) {
-        bloom_filter[index] = ((buf[index >> 3] >> (index & 7)) & 1);
-    }
-}
-
-bool SSTable::bloom_test(uint64_t key) {
-    uint32_t cur_hash[4] = {0};
-    MurmurHash3_x64_128(&key, sizeof(key), 1, cur_hash);
-
-    return (bloom_filter.test(cur_hash[0] % FILTER_BIT_SIZE) &&
-            bloom_filter.test(cur_hash[1] % FILTER_BIT_SIZE) &&
-            bloom_filter.test(cur_hash[2] % FILTER_BIT_SIZE) &&
-            bloom_filter.test(cur_hash[3] % FILTER_BIT_SIZE));
-}
-
-size_t SSTable::binary_search(uint64_t key) {
-    size_t left = 0, right = table_header.kv_count - 1;
-    while (left <= right) {
-        size_t mid = (left + right) >> 1;
-        uint64_t mid_key = data_index[mid].key;
-        if (mid_key == key) return mid;
-        if (mid_key > key) right = mid - 1;
-        else left = mid + 1;
-    }
-    return table_header.kv_count;
-}
-
-SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &dir) {
-
-    uint64_t kc = data->size();
-    uint64_t min = data->begin()->first;
-    uint64_t max = (data->end() - 1)->first;
-    table_header = Header(ts, kc, min, max);
-
-    file_path = dir + "/" + my_itoa(ts) + "-" + my_itoa(min) + ".sst";
-
-    header_offset = cal_size(kc, 0);
-
-    // Generate the remaining data members at the same time
-    data_index = new IndexData[kc];
-    auto cur_data = data->begin();
-    size_t index = 0;
-    uint32_t offset = 0;
-    while (cur_data != data->end()) {
-        uint64_t cur_key = cur_data->first;
-
-        // Generate data index
-        data_index[index] = IndexData(cur_key, offset);
-        offset += cur_data->second.size();
-
-        // Configure bloom filter
-        uint32_t hash[4] = {0};
-        MurmurHash3_x64_128(&cur_key, sizeof(cur_key), 1, hash);
-        bloom_filter.set(hash[0] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[1] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[2] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[3] % FILTER_BIT_SIZE); // Expanding the loop to improve efficiency
-
-        cur_data++;
-    }
-    string_length = offset;
-
-    // write front header to file
-    std::ofstream ssTable_in_file(file_path, std::ios_base::trunc | std::ios_base::binary);
-    write_header(ssTable_in_file);
-
-    // write string data to file
-    cur_data = data->begin();
-    while (cur_data != data->end()) {
-        ssTable_in_file.write(cur_data->second.c_str(), cur_data->second.size());
-        cur_data++;
-    }
-
-    ssTable_in_file.close();
-    delete data;
-}
-
 SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std::string &dir) {
 
     // Generate the remaining data members at the same time
@@ -114,21 +29,13 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
         // Generate data index
         data_index[index++] = IndexData(cur_key, offset);
         offset += cur_node->value.size();
-
-        // Configure bloom filter
-        uint32_t hash[4] = {0};
-        MurmurHash3_x64_128(&cur_key, sizeof(cur_key), 1, hash);
-        bloom_filter.set(hash[0] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[1] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[2] % FILTER_BIT_SIZE);
-        bloom_filter.set(hash[3] % FILTER_BIT_SIZE); // Expanding the loop to improve efficiency
     }
     string_length = offset;
 
     uint64_t min = data_head->next->key;
     uint64_t max = cur_node->key;
     table_header = Header(ts, kv_count, min, max);
-    header_offset = cal_size(kv_count, 0);
+    header_offset = cal_header_offset(kv_count);
 
     file_path = dir + "/" + my_itoa(ts) + "-" + my_itoa(min) + ".sst";
 
@@ -142,6 +49,8 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
         ssTable_in_file.write(cur_node->value.c_str(), (long long)(cur_node->value.size()));
         cur_node = cur_node->next;
     }
+    delete[] data_index;
+    data_index = nullptr;
 
     ssTable_in_file.close();
 }
@@ -153,19 +62,9 @@ SSTable::SSTable(const std::string &_file_path) {
     cur_SSTable.read((char*)(&table_header), sizeof(Header));
     uint64_t KV_COUNT = table_header.kv_count;
 
-    char *buf = new char[FILTER_BYTE_SIZE];
-    cur_SSTable.read(buf, FILTER_BYTE_SIZE);
-    bitset_from_bytes(buf);
-    delete[] buf;
-
-    data_index = new IndexData[KV_COUNT + 1];
-    long long test = cur_SSTable.tellg();
-    for (size_t ind = 0; ind < KV_COUNT; ++ind) {
-        cur_SSTable.read((char*)(&(data_index[ind].key)), 8);
-        cur_SSTable.read((char*)(&(data_index[ind].offset)), 4);
-    }
+    data_index = nullptr;
     
-    header_offset = cur_SSTable.tellg();
+    header_offset = cal_header_offset(KV_COUNT);
     cur_SSTable.seekg(0, std::ifstream::end);
     string_length = (size_t)cur_SSTable.tellg() - header_offset;
 
@@ -174,16 +73,12 @@ SSTable::SSTable(const std::string &_file_path) {
 
 SSTable::~SSTable() {
     delete[] data_index;
+    data_index = nullptr;
 }
 
 void SSTable::write_header(std::ofstream &ssTable_in_file) {
     uint64_t KV_COUNT = table_header.kv_count;
     ssTable_in_file.write((char*)(&table_header), sizeof(Header));
-
-    char *bit_seq = new char[FILTER_BYTE_SIZE];
-    bitset_to_bytes(bit_seq);
-    ssTable_in_file.write(bit_seq, FILTER_BYTE_SIZE);
-    delete[] bit_seq;
     
     for (size_t ind = 0; ind < KV_COUNT; ++ind) {
         ssTable_in_file.write((char*)(&(data_index[ind].key)), 8);
@@ -191,26 +86,20 @@ void SSTable::write_header(std::ofstream &ssTable_in_file) {
     }
 }
 
-std::string SSTable::get_by_index(uint64_t index) {
+void SSTable::read_index(std::ifstream *fs) {
+    fs->seekg(32, std::ios_base::beg);
+    uint64_t KV_COUNT = table_header.kv_count;
 
-    size_t KV_COUNT = table_header.kv_count;
+    data_index = new IndexData[KV_COUNT + 1];
+    for (size_t ind = 0; ind < KV_COUNT; ++ind) {
+        fs->read((char*)(&(data_index[ind].key)), 8);
+        fs->read((char*)(&(data_index[ind].offset)), 4);
+    }
+}
 
-    if (index >= KV_COUNT) 
-        return "";
-
-    size_t cur_offset = data_index[index].offset;
-    std::ifstream ssTable_in_file(file_path);
-    ssTable_in_file.seekg(header_offset + cur_offset);
-    size_t cur_length = (index != KV_COUNT - 1) ? 
-            data_index[index + 1].offset - cur_offset : 
-            string_length - cur_offset;
-
-    char *str_buf = new char[cur_length];
-    ssTable_in_file.read(str_buf, cur_length);
-    std::string cur_data(str_buf, cur_length);
-    delete[] str_buf;
-
-    return cur_data;
+void SSTable::delete_index() {
+    delete[] data_index;
+    data_index = nullptr;
 }
 
 scope_type SSTable::get_scope() {
@@ -225,8 +114,8 @@ std::ifstream *SSTable::open_file() {
 
 std::string SSTable::read_by_index(std::ifstream &fs, uint64_t index) {
     size_t cur_offset = data_index[index].offset;
-    size_t cur_length = (index != table_header.kv_count - 1) ? 
-            data_index[index + 1].offset - cur_offset : 
+    size_t cur_length = (index != table_header.kv_count - 1) ?
+            data_index[index + 1].offset - cur_offset :
             string_length - cur_offset;
 
     char *str_buf = new char[cur_length];
@@ -241,7 +130,7 @@ uint64_t SSTable::get_time_stamp() const {
     return table_header.time_stamp;
 }
 
-std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_delete, const std::string &dir) {
+std::vector<SSTable*> merge_table(std::vector<SSTable*> &prepared_data, bool is_delete, const std::string &dir) {
 
     std::priority_queue<MergeInfo> merge_heap;
     std::vector<SSTable*> merged_data;
@@ -253,9 +142,10 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
     // initialize min keys
     uint64_t table_index = 0;
     for (auto cur_table_itr : prepared_data) {
-        uint64_t mk = cur_table_itr->data_index[0].key;
+        uint64_t mk = cur_table_itr->table_header.min_key;
         uint64_t ts = cur_table_itr->table_header.time_stamp;
         std::ifstream *fs = cur_table_itr->open_file();
+        cur_table_itr->read_index(fs);
         fs_store[table_index] = fs;
         merge_heap.push(MergeInfo(mk, ts, 0, table_index++, fs));
 
@@ -291,7 +181,7 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
                     SSTable *cur_tb = prepared_data[deleted_data.table_index];
                     std::string useless_string = cur_tb->read_by_index((*deleted_data.file_stream), deleted_data.index);
 
-                    if (++(deleted_data.index) != cur_table->table_header.kv_count) {
+                    if (++(deleted_data.index) < cur_table->table_header.kv_count) {
                         // if not the end, set index to next element of current table, and push it back to heap
                         deleted_data.min_key = cur_tb->data_index[deleted_data.index].key;
                         merge_heap.push(deleted_data);
@@ -301,7 +191,7 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
         }
 
         // set min key to next element's key, and push it back to heap
-        if (++(cur_data.index) != cur_table->table_header.kv_count) {
+        if (++(cur_data.index) < cur_table->table_header.kv_count) {
             // if not the end, set index to next element of current table, and push it back to heap
             cur_data.min_key = cur_table->data_index[cur_data.index].key;
             merge_heap.push(cur_data);
@@ -330,15 +220,40 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_d
 }
 
 std::string SSTable::get(uint64_t key) {
-    if (bloom_test(key)) {
-        size_t ind = binary_search(key);
-        if (ind != table_header.kv_count) {
-            return get_by_index(ind); // may be "~DELETED~"
+    std::ifstream cur_SSTable(file_path, std::ios_base::in | std::ios_base::binary);
+    uint64_t KV_COUNT = table_header.kv_count, cur_key;
+    uint32_t cur_offset;
+    cur_SSTable.seekg(sizeof(Header));
+    for (size_t ind = 0; ind < KV_COUNT; ++ind) {
+        cur_SSTable.read((char*)(&(cur_key)), 8);
+        cur_SSTable.read((char*)(&(cur_offset)), 4);
+        if (cur_key == key) {
+            size_t cur_length;
+            if (ind != KV_COUNT - 1) {
+                cur_SSTable.seekg(8, std::ios_base::cur);
+                uint32_t next_offset;
+                cur_SSTable.read((char*)(&(next_offset)), 4);
+                cur_length = next_offset - cur_offset;
+            } else {
+                cur_length = string_length - cur_offset;
+            }
+            cur_SSTable.seekg((long long)header_offset + cur_offset);
+            char *buf = new char[cur_length];
+            cur_SSTable.read(buf, (long long)cur_length);
+            std::string str(buf, cur_length);
+            cur_SSTable.close();
+            delete[] buf;
+            return str;
         }
     }
+    cur_SSTable.close();
     return "";
 }
 
 void SSTable::delete_file() {
     utils::rmfile(file_path.c_str());
+}
+
+uint64_t SSTable::cal_header_offset(uint64_t kv) {
+    return 32 + 12 * kv;
 }

@@ -18,11 +18,6 @@ private:
         Header();
         Header(uint64_t ts, uint64_t kc, uint64_t min, uint64_t max);
     } table_header;
-
-    std::bitset<FILTER_BIT_SIZE> bloom_filter;
-    void bitset_to_bytes(char*);
-    void bitset_from_bytes(const char*);
-    bool bloom_test(uint64_t);
     
     struct IndexData {
         uint64_t key;
@@ -30,22 +25,12 @@ private:
         IndexData();
         IndexData(uint64_t k, uint32_t o);
     } *data_index;
-    /**
-     * binary search in data_index for key
-     * @param key query key
-     * @return The index corresponding to the key (kv_count if not found)
-     */
-    size_t binary_search(uint64_t);
+    void read_index(std::ifstream *);
+    void delete_index();
+
+    static uint64_t cal_header_offset(uint64_t kv);
 
 public:
-
-    /**
-     * Constructor for SSTable, writing SSTable to level-0 immediately.
-     * @param data value vector for all key-value pairs
-     * @param time_stamp current SSTable's time stamp
-     * @param dir data dictionary of this LSM tree
-     */
-    SSTable(std::vector<value_type> *data, uint64_t time_stamp, const std::string &dir);
 
     /**
      * Faster & lower memory cost Constructor for SSTable, the low coupling degree is lost.
@@ -72,13 +57,6 @@ public:
     void write_header(std::ofstream &ssTable_in_file);
 
     /**
-     * Find data with given index, use this function to get single data.
-     * @param index data index 
-     * @return current queried string ("" if index >= size)
-     */
-    std::string get_by_index(uint64_t index);
-
-    /**
      * Merge several SSTables and write them to Disk at the same time.
      * @param prepared_data SSTables to be merged
      * @param time_stamp current time stamp to initialise new SSTable
@@ -86,7 +64,7 @@ public:
      * @param dir target write dictionary
      * @return merged SSTables
      */
-    friend std::vector<SSTable*> merge_table(std::vector<SSTable*> prepared_data, bool is_delete, const std::string &dir);
+    friend std::vector<SSTable*> merge_table(std::vector<SSTable*> &prepared_data, bool is_delete, const std::string &dir);
 
     /**
      * @return pair of (min_key, max_keu), which indicates range of data in this SSTable.
