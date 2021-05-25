@@ -107,7 +107,7 @@ scope_type SSTable::get_scope() {
 }
 
 std::ifstream *SSTable::open_file() {
-    auto *target = new std::ifstream(file_path);
+    auto *target = new std::ifstream(file_path, std::ios_base::in | std::ios_base::binary);
     target->seekg(header_offset);
     return target;
 }
