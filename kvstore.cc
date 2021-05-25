@@ -29,8 +29,9 @@ std::string KVStore::get(uint64_t key)
 bool KVStore::del(uint64_t key)
 {
     bool is_exist = !get(key).empty();
-	memTable.put(key, "~DELETED~");
-    return is_exist;
+	if (is_exist) {
+        memTable.put(key, "~DELETED~");
+	} return is_exist;
 }
 
 /**
