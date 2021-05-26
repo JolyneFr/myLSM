@@ -62,6 +62,9 @@ std::string Level::get(uint64_t key, uint64_t &ret_ts) {
             if (!tmp_string.empty()) {
                 ret_ts = cur_tb->get_time_stamp();
                 return tmp_string; // may be "~DELETED~"
+            } else if (level_tables.size() > 2) {
+                // if not in the level-0, data overlap is forbidden
+                return "";
             }
         }
         find_itr++;
