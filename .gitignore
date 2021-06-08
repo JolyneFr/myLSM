@@ -9,3 +9,8 @@
 # Local History for Visual Studio Code
 .history/
 
+# Cmake Build Directory
+.cmake-build-debug/
+.cmake-build-release/
+
+
