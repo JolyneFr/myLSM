@@ -103,7 +103,7 @@ void DiskRepo::handle_overflow(size_t overflowed_index) {
 
 bool DiskRepo::check_overflow(size_t index) {
     if (index >= disk_levels.size()) return true;
-    return disk_levels[index]->get_size() <= (1 << (index + 1));
+    return disk_levels[index]->get_size() <= (size_t)(1 << (index + 1));
 }
 
 void DiskRepo::push_ssTable(SSTable *new_table) {

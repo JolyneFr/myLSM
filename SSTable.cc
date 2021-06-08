@@ -159,7 +159,6 @@ SSTable::SSTable(const std::string &_file_path) {
     delete[] buf;
 
     data_index = new IndexData[KV_COUNT + 1];
-    long long test = cur_SSTable.tellg();
     for (size_t ind = 0; ind < KV_COUNT; ++ind) {
         cur_SSTable.read((char*)(&(data_index[ind].key)), 8);
         cur_SSTable.read((char*)(&(data_index[ind].offset)), 4);

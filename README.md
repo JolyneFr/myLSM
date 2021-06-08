@@ -1,25 +1,43 @@
 ## myLSM: KVStore using Log-structured Merge Tree
 
 Current version of myLSM can pass all correctness / persistence test on Linux, 
-without any memory-leak. However, trying to run test on Windows would cause unpredictable 
-problems. I will fix this issue 2 weeks later.
+without any memory-leak. However, trying to run test on Windows would cause unpredictable problems. I will fix this issue 2 weeks later.
+
+------
+
+### Running Test Program
+
+To generate project buildsystem, type:
+
+```shell
+mkdir build; cd build
+cmake ../
+```
 
 To build project, type:
 
 ```shell
-cmake --build ./cmake-build-release --target correctness
-cmake --build ./cmake-build-release --target persistence
+cmake --build . --target correctness
+cmake --build . --target persistence
 ```
 
 To test project, type:
+
 ```shell
-./cmake-build-release/correctness
-./cmake-build-release/persistence
-./cmake-build-release/persistence -t
+./correctness
+./persistence
+./persistence -t
 ```
 
+Don't forget to
 
-Explanation of each class / file:
+```shell
+rm -rf data
+```
+
+------
+
+### Explanation of each class / file
 
 ```text
 .
@@ -28,7 +46,7 @@ Explanation of each class / file:
 ├── data      // Data directory used in test
 ├── kvstore     // Top level implementation for LSM tree
 ├── SkipList     // Data structure of MemTable
-├── DiskRepo   // Manage all levels stored in disk, handling compaction
+├── DiskRepo   // Manage levels stored in disk, handling compaction
 ├── Level    // Store all ssTables in the same level
 ├── SSTable     // Maintain metadata of a stored sorted table
 ├── MergeBuffer   // Linear structure for generating SSTs when merging
@@ -41,7 +59,9 @@ Explanation of each class / file:
 └── test.h         // Base class for testing
 ```
 
-### TODOs:
+------
+
+### TODOs
+
 + ~~Fixes the issue that doesn't work properly under Windows~~ Fixed
 + Optimize compact operation by handling one overflowed sst a time  
-
