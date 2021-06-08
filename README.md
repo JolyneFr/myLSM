@@ -4,6 +4,21 @@ Current version of myLSM can pass all correctness / persistence test on Linux,
 without any memory-leak. However, trying to run test on Windows would cause unpredictable 
 problems. I will fix this issue 2 weeks later.
 
+To build project, type:
+
+```shell
+cmake --build ./cmake-build-release --target correctness
+cmake --build ./cmake-build-release --target persistence
+```
+
+To test project, type:
+```shell
+./cmake-build-release/correctness
+./cmake-build-release/persistence
+./cmake-build-release/persistence -t
+```
+
+
 Explanation of each class / file:
 
 ```text
