@@ -1,7 +1,6 @@
 #include <fstream>
 #include <cstring>
 #include <queue>
-#include <iostream>
 #include "SSTable.h"
 #include "MurmurHash3.h"
 #include "utils.h"
@@ -143,7 +142,7 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
     while (cur_node) {
         auto value_size = (long long)(cur_node->value.size());
         auto value_str = cur_node->value.c_str();
-        if (value_size == 2) printf("1: %s to %s\n", value_str, file_path.c_str());
+        //if (value_size == 2) printf("1: %s to %s\n", value_str, file_path.c_str());
         ssTable_in_file.write(value_str, value_size);
         cur_node = cur_node->next;
     }
