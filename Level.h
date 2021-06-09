@@ -67,4 +67,5 @@ public:
      */
     std::map<key_type, SSTable*> *get_level();
 
+    bool check_overlap();
 };

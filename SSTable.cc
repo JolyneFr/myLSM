@@ -1,10 +1,12 @@
 #include <fstream>
-#include <iostream>
 #include <cstring>
 #include <queue>
+#include <iostream>
 #include "SSTable.h"
 #include "MurmurHash3.h"
 #include "utils.h"
+
+uint64_t SSTable::table_id = 0;
 
 SSTable::Header::Header(): time_stamp(0), kv_count(0), min_key(0), max_key(0) {}
 
@@ -57,7 +59,7 @@ SSTable::SSTable(std::vector<value_type> *data, uint64_t ts, const std::string &
     uint64_t max = (data->end() - 1)->first;
     table_header = Header(ts, kc, min, max);
 
-    file_path = dir + "/" + my_itoa(ts) + "-" + my_itoa(min) + ".sst";
+    file_path = dir + "/" + my_itoa(SSTable::table_id++) + ".sst";
 
     header_offset = cal_size(kc, 0);
 
@@ -130,7 +132,7 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
     table_header = Header(ts, kv_count, min, max);
     header_offset = cal_size(kv_count, 0);
 
-    file_path = dir + "/" + my_itoa(ts) + "-" + my_itoa(min) + ".sst";
+    file_path = dir + "/" + my_itoa(SSTable::table_id++) + ".sst";
 
     // write front header to file
     std::ofstream ssTable_in_file(file_path, std::ios_base::trunc | std::ios_base::binary);
@@ -139,7 +141,10 @@ SSTable::SSTable(ListNode *data_head, uint64_t kv_count, uint64_t ts, const std:
     // write string data to file
     cur_node = data_head->next;
     while (cur_node) {
-        ssTable_in_file.write(cur_node->value.c_str(), (long long)(cur_node->value.size()));
+        auto value_size = (long long)(cur_node->value.size());
+        auto value_str = cur_node->value.c_str();
+        if (value_size == 2) printf("1: %s to %s\n", value_str, file_path.c_str());
+        ssTable_in_file.write(value_str, value_size);
         cur_node = cur_node->next;
     }
 
@@ -187,6 +192,7 @@ void SSTable::write_header(std::ofstream &ssTable_in_file) {
     for (size_t ind = 0; ind < KV_COUNT; ++ind) {
         ssTable_in_file.write((char*)(&(data_index[ind].key)), 8);
         ssTable_in_file.write((char*)(&(data_index[ind].offset)), 4);
+
     }
 }
 
@@ -269,6 +275,8 @@ std::vector<SSTable*> merge_table(std::vector<SSTable*> &prepared_data, bool is_
         SSTable *cur_table = prepared_data[cur_data.table_index];
         std::string cur_data_string = cur_table->read_by_index((*cur_data.file_stream), cur_data.index);
 
+
+
         if (cur_data_key != buffer.get_rear()->key || !buffer.get_size()) { 
             // not the same key, just append
             if (!is_delete || cur_data_string != "~DELETED~") {
@@ -340,4 +348,8 @@ std::string SSTable::get(uint64_t key) {
 
 void SSTable::delete_file() {
     utils::rmfile(file_path.c_str());
+}
+
+std::string SSTable::get_table_path() {
+    return file_path;
 }

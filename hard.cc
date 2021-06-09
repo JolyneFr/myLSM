@@ -9,7 +9,7 @@
 class CorrectnessTest : public Test {
 private:
     const uint64_t SIMPLE_TEST_MAX = 512;
-    const uint64_t LARGE_TEST_MAX = 1024 * 32;
+    const uint64_t LARGE_TEST_MAX = 1024 * 64;
 
     void regular_test(uint64_t max)
     {
@@ -38,16 +38,10 @@ private:
 
         // Test after all insertions
         for (i = 0; i < max; ++i) {
-            std::string got = store.get(i);
-            EXPECT(std::string(i+1, 's'), got);
-            if (std::string(i+1, 's') != got) {
-                printf("i = %d\nreal size = %d\n", i, got.size());
-                return;
-            }
+            EXPECT(std::string(i+1, 's'), store.get(i));
         }
 
         phase();
-
 
         // Test deletions
         std::shuffle(keys.begin(), keys.end(), std::mt19937(std::random_device()()));

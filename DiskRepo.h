@@ -53,5 +53,6 @@ public:
      */
     void clear();
 
+    bool check_overlap();
 };
 

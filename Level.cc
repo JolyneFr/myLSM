@@ -1,4 +1,5 @@
 #include <queue>
+#include <cstdlib>
 #include "Level.h"
 #include "utils.h"
 
@@ -13,6 +14,9 @@ uint64_t Level::scan_level() {
 
     for (const auto& file_str : dir_list) {
         if (sst_suffix(file_str.c_str())) {
+            size_t last_index = file_str.find_last_of('.');
+            uint64_t cur_id = std::stoll(file_str.substr(0, last_index));
+            if (cur_id >= SSTable::table_id) SSTable::table_id = cur_id + 1;
             // if end with .sst, add to level storage
             auto new_ssTable = new SSTable(level_path + "/" + file_str);
             if (new_ssTable->get_time_stamp() > max_ts) {
@@ -86,4 +90,24 @@ std::string Level::get_level_path() {
 
 std::map<key_type, SSTable*> *Level::get_level() {
     return &level_tables;
+}
+
+bool Level::check_overlap() {
+    std::map<uint64_t, SSTable*> sort_map;
+    for (auto itr : level_tables) {
+        sort_map.insert(std::make_pair(itr.second->get_scope().first, itr.second));
+    }
+    uint64_t last_key = 0;
+    const char *last_path = "null";
+    for (auto itr :sort_map) {
+        scope_type s = itr.second->get_scope();
+        if (s.first <= last_key && last_key) {
+            printf("overlap scope between %s and %s\n",last_path, itr.second->get_table_path().c_str());
+            printf("max key before = %llu, min_key = %llu\n", last_key, s.first);
+            return false;
+        }
+        last_key = s.second;
+        last_path = itr.second->get_table_path().c_str();
+    }
+    return true;
 }

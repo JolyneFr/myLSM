@@ -2,8 +2,7 @@
 
 int main() {
     KVStore store("../cmake-build-release/data");
-    std::string got = store.get(12882);
-    bool flag = std::string(12883, 's') == got;
-    printf("%d %d\n", got.size(), flag);
+    std::string got = store.get(1);
+    printf("%s is what\n", got.c_str());
     return 0;
 }

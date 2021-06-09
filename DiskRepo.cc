@@ -17,7 +17,6 @@ DiskRepo::DiskRepo(const std::string& d): time_stamp(1), dir(d) {
                     // scan all files in current level
                     auto new_level = new Level(dir, i);
                     uint64_t max_ts = new_level->scan_level();
-
                     if (time_stamp <= max_ts) time_stamp = max_ts;
                     disk_levels.push_back(new_level);
                     break;
@@ -62,7 +61,7 @@ void DiskRepo::handle_overflow(size_t overflowed_index) {
     Level *next_level = disk_levels[overflowed_index + 1];
     // merge a table from upper level at once => maybe faster
 
-    scope_type overflow_scope = std::make_pair((uint64_t)(-1), 0);
+    scope_type overflow_scope = std::make_pair(UINT64_MAX, 0);
 
     for (auto cur_table : overflowed_tables) {
         auto cur_scope = cur_table->get_scope();
@@ -79,8 +78,8 @@ void DiskRepo::handle_overflow(size_t overflowed_index) {
     std::vector<std::map<key_type, SSTable*>::iterator> del_record;
     while (find_itr != next_lv_map->end()) {
         auto cur_table = find_itr->second;
-        if (in_scope(overflow_scope, cur_table->get_scope().first) ||
-            in_scope(overflow_scope, cur_table->get_scope().second)) {
+        if (overflow_scope.second >= cur_table->get_scope().first &&
+            overflow_scope.first <= cur_table->get_scope().second) {
             del_record.push_back(find_itr);
             overflowed_tables.push_back(cur_table);
         }
@@ -153,4 +152,14 @@ void DiskRepo::clear() {
     }
     disk_levels.clear();
     time_stamp = 1;
+}
+
+bool DiskRepo::check_overlap() {
+    auto level = disk_levels.begin() + 1;
+    while (level != disk_levels.end()) {
+        if (!(*level)->check_overlap())
+            return false;
+        level++;
+    }
+    return true;
 }

@@ -38,6 +38,10 @@ private:
     size_t binary_search(uint64_t);
 
 public:
+    /*
+     * Unique SSTable ID, start by 0.
+     */
+    static uint64_t table_id;
 
     /**
      * Constructor for SSTable, writing SSTable to level-0 immediately.
@@ -124,4 +128,6 @@ public:
      * Delete file linked with current SSTable.
      */
     void delete_file();
+
+    std::string get_table_path();
 };
