@@ -1,14 +1,25 @@
+target =
 
-LINK.o = $(LINK.cc)
-CXXFLAGS = -std=c++14 -Wall
+.PHONY: config
+config:
+	cmake -B build
 
-all: correctness persistence
-
-correctness: kvstore.o correctness.o SkipList.o SSTable.o DiskManager.o global.o LevelStorage.o MergeBuffer.o
-
-persistence: kvstore.o persistence.o SkipList.o SSTable.o DiskManager.o global.o LevelStorage.o MergeBuffer.o
-
-mytest: kvstore.o main.o SkipList.o SSTable.o DiskManager.o global.o LevelStorage.o MergeBuffer.o
-
+.PHONY: clean
 clean:
-	-rm -f correctness persistence *.o
+	rm -rf build bin
+
+.PHONY: build-tests
+build-tests:
+	cmake --build build
+
+.PHONY: build-all
+build-all:
+	cmake --build build
+
+.PHONY: build
+build:
+ifeq ($(target),)
+	echo "build command must specify target"
+else
+	cmake --build build --target $(target)
+endif

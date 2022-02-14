@@ -1,6 +1,5 @@
 ### VisualStudioCode template
 .vscode/*
-!.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
@@ -12,5 +11,9 @@
 # Cmake Build Directory
 .cmake-build-debug/
 .cmake-build-release/
+
+# Temp Directory
+build/
+data/
 
 

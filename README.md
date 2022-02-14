@@ -10,23 +10,23 @@ without any memory-leak. However, trying to run test on Windows would cause unpr
 To generate project buildsystem, type:
 
 ```shell
-mkdir build; cd build
-cmake ../
+make config
 ```
 
 To build project, type:
 
 ```shell
-cmake --build . --target correctness
-cmake --build . --target persistence
+make build target=<target-name>
+# build all
+make build-all
 ```
 
 To test project, type:
 
 ```shell
-./correctness
-./persistence
-./persistence -t
+./build/correctness
+./build/persistence
+./build/persistence -t
 ```
 
 Don't forget to
