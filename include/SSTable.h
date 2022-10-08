@@ -39,7 +39,7 @@ private:
 
 public:
     /*
-     * Unique SSTable ID, start by 0.
+     * Unique SSTable ID, start with 0.
      */
     static uint64_t table_id;
 
